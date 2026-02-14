@@ -1,0 +1,21 @@
+# virtual env
+.venv/
+venv/
+bin/
+lib/
+lib64/
+pyvenv.cfg
+
+# python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# logs & output
+output/
+logs/
+*.log
+
+# env
+.env

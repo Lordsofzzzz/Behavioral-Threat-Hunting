@@ -1,0 +1,38 @@
+services:
+  generator:
+    build: .
+    container_name: bth-generator
+    working_dir: /app
+    environment:
+      - PYTHONPATH=/app/src
+      - LOG_FILE=/app/logs/access.log
+    volumes:
+      - logs:/app/logs
+    command: ["python", "scripts/log_generator.py"]
+    restart: unless-stopped
+
+  monitor:
+    build: .
+    container_name: bth-monitor
+    working_dir: /app
+    environment:
+      - PYTHONPATH=/app/src
+    volumes:
+      - logs:/app/logs
+      - ./configs:/app/configs:ro
+    command: [
+      "python",
+      "-m",
+      "bth_web.cli",
+      "monitor",
+      "--log",
+      "/app/logs/access.log",
+      "--config",
+      "/app/configs/default.yaml"
+    ]
+    depends_on:
+      - generator
+    restart: unless-stopped
+
+volumes:
+  logs:

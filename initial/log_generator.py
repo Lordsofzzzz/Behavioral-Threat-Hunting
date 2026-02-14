@@ -28,7 +28,7 @@ while True:
     # 30% chance of attack, 70% chance of safe traffic
     if random.random() < 0.3:
         url = random.choice(attacks)
-        ip = "192.168.1.66" # The "Attacker" IP
+        ip = "8.8.8.8" # The "Attacker" IP
         status = 200
     else:
         url = random.choice(safe)
