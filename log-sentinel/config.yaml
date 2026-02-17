@@ -1,0 +1,35 @@
+# Log Sentinel Configuration
+
+# Log file to monitor
+log_file: test_access.log
+
+# Alert output
+alert_log: alerts.log
+console_output: true
+
+# Detection settings
+enable_sqli_detection: true
+enable_xss_detection: true
+enable_traversal_detection: true
+enable_cmdi_detection: true
+enable_scanner_detection: true
+
+# Rate limiting (requests per minute per IP)
+rate_limit_enabled: true
+rate_limit_threshold: 60
+rate_limit_window: 60  # seconds
+
+# 404 spam detection
+enable_404_detection: true
+max_404_per_minute: 10
+
+# Alert levels
+# 0 = INFO, 1 = WARNING, 2 = CRITICAL
+min_alert_level: 1
+
+# Whitelist IPs (comma-separated, no detection on these)
+whitelist_ips: 127.0.0.1,::1
+
+# Auto-blocking - in progress
+#auto_block_enabled: false
+#block_duration: 3600  # seconds
