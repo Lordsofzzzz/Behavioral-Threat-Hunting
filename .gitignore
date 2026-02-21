@@ -1,21 +1,36 @@
-# virtual env
-.venv/
-venv/
-bin/
-lib/
-lib64/
-pyvenv.cfg
-
-# python
+# Python cache/artifacts
 __pycache__/
-*.pyc
+*.py[cod]
 *.pyo
 *.pyd
+*.so
+*.egg-info/
+.pytest_cache/
+.mypy_cache/
 
-# logs & output
-output/
-logs/
-*.log
+# Virtual environments
+.venv/
+venv/
+env/
 
-# env
+# IDE / OS
+.vscode/
+.idea/
+Thumbs.db
+.DS_Store
+
+# Env/config secrets
 .env
+.env.*
+
+# Runtime data (keep folder, ignore generated files)
+log-sentinel/data/*
+!log-sentinel/data/.gitkeep
+
+# Evaluation generated artifacts
+log-sentinel/evaluation/dataset.jsonl
+log-sentinel/evaluation/report.json
+
+# Local outputs
+logs/
+output/

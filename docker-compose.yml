@@ -1,0 +1,41 @@
+version: "3.9"
+
+services:
+  sentinel:
+    build:
+      context: ./log-sentinel
+      dockerfile: Dockerfile
+    container_name: log-sentinel-engine
+    working_dir: /app
+    command: ["python", "sentinel.py"]
+    volumes:
+      - ./log-sentinel:/app
+    restart: unless-stopped
+
+  dashboard:
+    build:
+      context: ./log-sentinel
+      dockerfile: Dockerfile
+    container_name: log-sentinel-dashboard
+    working_dir: /app
+    command: ["python", "Dashboard-server.py"]
+    ports:
+      - "8888:8888"
+    volumes:
+      - ./log-sentinel:/app
+    depends_on:
+      - sentinel
+    restart: unless-stopped
+
+  simulator:
+    build:
+      context: ./log-sentinel
+      dockerfile: Dockerfile
+    container_name: log-sentinel-simulator
+    working_dir: /app
+    command: ["python", "demo_simulator.py"]
+    volumes:
+      - ./log-sentinel:/app
+    depends_on:
+      - sentinel
+    restart: "no"

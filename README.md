@@ -8,25 +8,37 @@ Log Sentinel is a lightweight, real-time log monitor for Nginx-style access logs
 - Rate limit and 404 spam detection per IP
 - Console alerts and file-based alert logging
 - Optional dashboard with API endpoints
+- Robust parsing for common Nginx log variants
+- Duplicate alert suppression to reduce noisy repeated alerts
+- Dynamic risk scoring (0-100) with score-based severity
+- Behavioral anomaly detection (new endpoint, new user-agent, request spike)
+- Explainable alerts with machine-readable reason codes
+- Incident correlation (group related alerts into campaign-like incidents)
 
 ## Project Structure
+- .github/: CI and contribution templates
+- docs/: architecture and demo docs
 - log-sentinel/
   - sentinel.py: Log monitor and detection engine
   - config.yaml: Runtime settings
   - Dashboard-server.py: Dashboard HTTP server
   - dashboard.html: Dashboard UI
+  - demo_simulator.py: Docker demo traffic generator
   - rules/: Pattern files for detection
+  - evaluation/: Benchmark dataset and metrics scripts
+  - data/: Runtime log files (git-ignored)
   - test.sh: Log attack simulator (bash)
+- PHASED_IMPROVEMENT_PLAN.md: Final-year implementation roadmap
 
 ## Requirements
 - Python 3.8+
-- PyYAML
+- Dependencies listed in `log-sentinel/requirements.txt`
 
 ## Setup
 1) Create a virtual environment (optional) and install dependencies:
 
 ```bash
-pip install pyyaml
+pip install -r log-sentinel/requirements.txt
 ```
 
 2) Update the log path and settings in log-sentinel/config.yaml if needed.
@@ -38,7 +50,7 @@ From the log-sentinel directory:
 python sentinel.py
 ```
 
-The sentinel tails the configured log file and writes alerts to alerts.log.
+The sentinel tails the configured log file and writes alerts to `log-sentinel/data/alerts.log`.
 
 ## Run the Dashboard
 In a separate terminal, from log-sentinel:
@@ -48,6 +60,24 @@ python Dashboard-server.py
 ```
 
 Then open http://localhost:8888 in a browser.
+
+## One-Command Docker Demo
+From the repository root:
+
+```bash
+docker compose up --build
+```
+
+This starts:
+- `sentinel` (detection engine)
+- `dashboard` (UI/API on `http://localhost:8888`)
+- `simulator` (scripted attack traffic generator for demo)
+
+Stop with:
+
+```bash
+docker compose down
+```
 
 ## Simulate Attacks
 The test script appends sample attack lines to the configured log.
@@ -66,6 +96,10 @@ Key settings in log-sentinel/config.yaml:
 - rate_limit_*: Rate limit settings
 - enable_404_detection / max_404_per_minute
 - whitelist_ips: Comma-separated IPs to skip
+- dedup_enabled / dedup_window_seconds: Suppress duplicate alerts in a time window
+- max_path_length: Limit very long path output in console
+- enable_behavioral_detection: Enable anomaly detection on request behavior
+- behavior_*: Tune baseline history thresholds and spike multiplier
 
 ## Rules
 Detection patterns live in log-sentinel/rules/:
@@ -78,10 +112,41 @@ Detection patterns live in log-sentinel/rules/:
 Patterns are treated as case-insensitive regular expressions.
 
 ## Output
-Alerts are written to alerts.log and optionally printed to the console. The dashboard reads alerts.log and exposes:
+Alerts are written to `log-sentinel/data/alerts.log` and optionally printed to the console. The dashboard reads that file and exposes:
 - GET /api/alerts (last 100 alerts)
 - GET /api/stats (summary stats)
+- GET /api/incidents (correlated incidents by IP and time window)
 
 ## Notes
 - The Nginx log regex expects the default combined log format.
 - alert levels are labeled INFO/WARNING/CRITICAL but the minimum level filter is not enforced in code yet.
+
+## Final-Year Track
+- The project now includes Phase 0 and Phase 1 hardening improvements in code.
+- See PHASED_IMPROVEMENT_PLAN.md for the full multi-phase roadmap through behavioral analytics, OSS maturity, and evaluation.
+
+## Evaluation (Final-Year Metrics)
+Run the built-in benchmark harness to generate measurable results:
+
+```bash
+python log-sentinel/evaluation/generate_dataset.py
+python log-sentinel/evaluation/evaluate.py
+```
+
+Outputs:
+- `log-sentinel/evaluation/dataset.jsonl`
+- `log-sentinel/evaluation/report.json`
+
+Reported metrics include precision, recall, F1, latency, throughput, memory usage, and per-attack-type recall.
+
+## Open Source Readiness
+- License: MIT (`LICENSE`)
+- Contribution guide: `CONTRIBUTING.md`
+- Code of conduct: `CODE_OF_CONDUCT.md`
+- Security policy: `SECURITY.md`
+- Community templates: `.github/ISSUE_TEMPLATE/` and `.github/pull_request_template.md`
+- CI checks: `.github/workflows/ci.yml`
+
+## Presentation Docs
+- Architecture overview: `docs/ARCHITECTURE.md`
+- 2-minute demo flow: `docs/DEMO_SCRIPT.md`
