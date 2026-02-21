@@ -47,7 +47,7 @@ jobs:
               rules = td_path / 'rules'
               rules.mkdir(parents=True, exist_ok=True)
 
-              (rules / 'sqli_patterns.txt').write_text(r'union\s+select\b\n', encoding='utf-8')
+              (rules / 'sqli_patterns.txt').write_text('union\\s+select\\b\n', encoding='utf-8')
               (rules / 'xss_patterns.txt').write_text('', encoding='utf-8')
               (rules / 'traversal_patterns.txt').write_text('', encoding='utf-8')
               (rules / 'cmdi_patterns.txt').write_text('', encoding='utf-8')
@@ -71,7 +71,12 @@ jobs:
                   line = '203.0.113.10 - - [21/Feb/2026:12:00:00 +0000] "GET /login.php?id=1%27%20UNION%20SELECT%201 HTTP/1.1" 200 123 "-" "curl/8.0"'
                   entry = s.parse_log_line(line)
                   alerts = s.detect_attacks(entry)
-                  assert alerts and alerts[0].get('score') is not None
+                  if not (alerts and alerts[0].get('score') is not None):
+                      rule_text = (rules / 'sqli_patterns.txt').read_text(encoding='utf-8')
+                      loaded_sqli = [p.pattern for p in s.patterns.get('sqli', [])]
+                      raise AssertionError(
+                          f"SQLi smoke failed. entry={entry}; alerts={alerts}; sqli_rule_file={rule_text!r}; loaded_sqli_patterns={loaded_sqli}"
+                      )
               finally:
                   os.chdir(cwd)
 
@@ -83,7 +88,13 @@ jobs:
           Path('alerts.log').write_text(sample, encoding='utf-8')
           parsed = dash_mod.parse_alerts()
           stats = dash_mod.build_stats(parsed)
-          assert parsed and parsed[0].get('reasons')
-          assert 'incident_count' in stats
+          if not (parsed and parsed[0].get('reasons')):
+              raise AssertionError(
+                  f"Dashboard parse smoke failed. parsed={parsed}; sample={sample!r}"
+              )
+          if 'incident_count' not in stats:
+              raise AssertionError(
+                  f"Dashboard stats smoke failed. stats={stats}; parsed={parsed}"
+              )
           print('ci_smoke_ok')
           PY
