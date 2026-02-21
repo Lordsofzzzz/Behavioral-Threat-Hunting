@@ -15,6 +15,14 @@ Log Sentinel is a lightweight, real-time log monitor for Nginx-style access logs
 - Explainable alerts with machine-readable reason codes
 - Incident correlation (group related alerts into campaign-like incidents)
 
+## Release Highlights (Feb 2026)
+- Hardened detection pipeline with config validation, path normalization, deduplication, and score-based severity.
+- Added behavioral anomaly intelligence with explainable reason codes in every enriched alert.
+- Added incident correlation (`/api/incidents`) and dashboard incident panel for faster analyst triage.
+- Added reproducible evaluation harness for academic metrics (precision, recall, F1, latency, throughput, memory).
+- Added Dockerized one-command demo stack (`sentinel`, `dashboard`, `simulator`).
+- Added open-source maturity assets: CI workflow, LICENSE, contribution templates, code of conduct, and security policy.
+
 ## Project Structure
 - .github/: CI and contribution templates
 - docs/: architecture and demo docs
