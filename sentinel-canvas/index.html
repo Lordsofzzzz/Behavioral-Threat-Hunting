@@ -1,0 +1,314 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="cyber-dark">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Sentinel Canvas</title>
+
+<link rel="stylesheet" href="css/base.css" />
+<link rel="stylesheet" href="css/themes.css" />
+<link rel="stylesheet" href="css/layout.css" />
+<link rel="stylesheet" href="css/widgets.css" />
+
+<!-- Export libraries -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js" defer></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js" defer></script>
+</head>
+<body>
+
+<div id="app">
+
+  <!-- ── Header ── -->
+  <header id="header">
+    <div class="logo">
+      <div class="logo-icon">S</div>
+      <div class="logo-text">Sentinel <span>Canvas</span></div>
+    </div>
+
+    <div class="header-divider"></div>
+
+    <!-- Page tabs -->
+    <div class="page-tabs" id="page-tabs"></div>
+    <button class="page-add-btn" id="page-add-btn" title="Add page">+</button>
+
+    <div class="header-divider"></div>
+
+    <!-- Actions -->
+    <div class="header-actions">
+      <div class="api-status" id="api-status" title="Click to check API status">
+        <div class="status-dot checking" id="statusDot"></div>
+        <span id="statusText">checking…</span>
+      </div>
+
+      <div class="header-divider"></div>
+
+      <!-- Undo / Redo -->
+      <button class="hbtn-icon" id="btn-undo" title="Undo (Ctrl+Z)" disabled>↩</button>
+      <button class="hbtn-icon" id="btn-redo" title="Redo (Ctrl+Y)" disabled>↪</button>
+
+      <div class="header-divider"></div>
+
+      <!-- Sidebar toggle -->
+      <button class="hbtn-icon active" id="btn-sidebar" title="Toggle sidebar">☰</button>
+      <!-- Props panel toggle -->
+      <button class="hbtn-icon active" id="btn-props" title="Toggle properties">⚙</button>
+
+      <div class="header-divider"></div>
+
+      <!-- Refresh -->
+      <button class="hbtn" id="btn-refresh">↺ Refresh</button>
+
+      <!-- Export dropdown -->
+      <div style="position:relative">
+        <button class="hbtn accent" id="btn-export">⬇ Export ▾</button>
+        <div id="export-dropdown" style="display:none;position:absolute;right:0;top:100%;margin-top:4px;
+          background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);
+          min-width:160px;box-shadow:var(--shadow);z-index:500;padding:4px;">
+          <div class="ctx-item" id="export-png"><span class="ctx-item-icon">🖼</span>Export as PNG</div>
+          <div class="ctx-item" id="export-pdf"><span class="ctx-item-icon">📄</span>Export as PDF</div>
+          <div class="ctx-separator"></div>
+          <div class="ctx-item" id="btn-save-layout"><span class="ctx-item-icon">⬇</span>Save Layout (.json)</div>
+          <label class="ctx-item" style="cursor:pointer">
+            <span class="ctx-item-icon">⬆</span>Load Layout
+            <input type="file" accept=".json" id="load-layout-input" style="display:none" />
+          </label>
+        </div>
+      </div>
+
+      <!-- Shortcuts help -->
+      <button class="hbtn-icon" id="btn-shortcuts" title="Keyboard shortcuts (?)">?</button>
+    </div>
+  </header>
+
+  <!-- ── Workspace ── -->
+  <div id="workspace">
+
+    <!-- ── Left Sidebar ── -->
+    <aside id="sidebar">
+      <div class="sidebar-tabs">
+        <button class="sidebar-tab active" data-tab="widgets">Widgets</button>
+        <button class="sidebar-tab" data-tab="settings">Settings</button>
+        <button class="sidebar-tab" data-tab="theme">Theme</button>
+      </div>
+
+      <!-- Widgets tab -->
+      <div class="sidebar-content" id="tab-widgets">
+        <div class="sidebar-section-label">Data Widgets</div>
+        <div class="widget-item" data-type="stats">
+          <div class="widget-item-icon">📊</div>
+          <div class="widget-item-info">
+            <div class="widget-item-name">Stats Counters</div>
+            <div class="widget-item-desc">Alert counts & scores</div>
+          </div>
+        </div>
+        <div class="widget-item" data-type="alerts">
+          <div class="widget-item-icon">🚨</div>
+          <div class="widget-item-info">
+            <div class="widget-item-name">Alert Table</div>
+            <div class="widget-item-desc">Live recent alerts</div>
+          </div>
+        </div>
+        <div class="widget-item" data-type="attacks">
+          <div class="widget-item-icon">🎯</div>
+          <div class="widget-item-info">
+            <div class="widget-item-name">Attack Types</div>
+            <div class="widget-item-desc">Category breakdown</div>
+          </div>
+        </div>
+        <div class="widget-item" data-type="ips">
+          <div class="widget-item-icon">🌐</div>
+          <div class="widget-item-info">
+            <div class="widget-item-name">Top IPs</div>
+            <div class="widget-item-desc">Most active attackers</div>
+          </div>
+        </div>
+        <div class="widget-item" data-type="timeline">
+          <div class="widget-item-icon">📈</div>
+          <div class="widget-item-info">
+            <div class="widget-item-name">Timeline</div>
+            <div class="widget-item-desc">Alert volume over time</div>
+          </div>
+        </div>
+        <div class="widget-item" data-type="incidents">
+          <div class="widget-item-icon">🔗</div>
+          <div class="widget-item-info">
+            <div class="widget-item-name">Incidents</div>
+            <div class="widget-item-desc">Correlated campaigns</div>
+          </div>
+        </div>
+
+        <div class="sidebar-divider"></div>
+        <div class="sidebar-section-label">Visual Widgets</div>
+
+        <div class="widget-item" data-type="gauge">
+          <div class="widget-item-icon">🎚</div>
+          <div class="widget-item-info">
+            <div class="widget-item-name">Risk Gauge</div>
+            <div class="widget-item-desc">Average risk score</div>
+          </div>
+        </div>
+        <div class="widget-item" data-type="heatmap">
+          <div class="widget-item-icon">🔥</div>
+          <div class="widget-item-info">
+            <div class="widget-item-name">Activity Heatmap</div>
+            <div class="widget-item-desc">Hourly activity heat</div>
+          </div>
+        </div>
+        <div class="widget-item" data-type="clock">
+          <div class="widget-item-icon">🕐</div>
+          <div class="widget-item-info">
+            <div class="widget-item-name">Clock / Uptime</div>
+            <div class="widget-item-desc">Live time & session</div>
+          </div>
+        </div>
+        <div class="widget-item" data-type="notes">
+          <div class="widget-item-icon">📝</div>
+          <div class="widget-item-info">
+            <div class="widget-item-name">Notes</div>
+            <div class="widget-item-desc">Free text / notes</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Settings tab -->
+      <div class="sidebar-content" id="tab-settings" style="display:none">
+        <div class="settings-group">
+          <span class="settings-label">API Profiles</span>
+          <div id="api-profiles-list"></div>
+          <div style="display:flex;gap:6px;margin-top:6px">
+            <input class="settings-input" id="new-profile-name" placeholder="Name" style="width:35%"/>
+            <input class="settings-input" id="new-profile-url" placeholder="http://localhost:8888" style="flex:1"/>
+          </div>
+          <button class="settings-btn" id="add-profile-btn">+ Add Profile</button>
+
+          <span class="settings-label">Canvas Grid</span>
+          <div class="toggle-row">
+            <label>Grid Snap</label>
+            <div class="toggle on" id="toggle-snap"></div>
+          </div>
+          <div class="toggle-row">
+            <label>Show Grid</label>
+            <div class="toggle on" id="toggle-grid"></div>
+          </div>
+          <span class="settings-label">Grid Size</span>
+          <div class="grid-size-btns">
+            <div class="grid-size-btn active" data-size="32">32px</div>
+            <div class="grid-size-btn" data-size="16">16px</div>
+          </div>
+
+          <span class="settings-label">Auto Refresh</span>
+          <select class="settings-select" id="refresh-interval">
+            <option value="15000">Every 15s</option>
+            <option value="30000" selected>Every 30s</option>
+            <option value="60000">Every 1 min</option>
+            <option value="300000">Every 5 min</option>
+            <option value="0">Manual only</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- Theme tab -->
+      <div class="sidebar-content" id="tab-theme" style="display:none">
+        <div style="padding:8px 16px 4px;font-size:10px;font-weight:700;letter-spacing:0.15em;text-transform:uppercase;color:var(--muted)">Color Theme</div>
+        <div class="theme-grid" id="theme-grid"></div>
+      </div>
+    </aside>
+
+    <!-- ── Canvas Area ── -->
+    <div id="canvas-wrap">
+      <div id="canvas-bg" class="grid-32"></div>
+      <div id="canvas">
+        <div id="empty-hint">
+          <div class="empty-icon">⬡</div>
+          <div class="empty-title">Canvas is empty</div>
+          <div class="empty-sub">Click a widget in the sidebar to get started</div>
+        </div>
+      </div>
+
+      <!-- Zoom controls -->
+      <div id="zoom-controls">
+        <button class="zoom-btn" id="zoom-in"  title="Zoom in (Ctrl +)">+</button>
+        <div id="zoom-level">100%</div>
+        <button class="zoom-btn" id="zoom-out" title="Zoom out (Ctrl -)">−</button>
+        <button class="zoom-btn" id="zoom-reset" title="Reset zoom (Ctrl 0)" style="font-size:11px;font-weight:700">1:1</button>
+      </div>
+    </div>
+
+    <!-- ── Properties Panel ── -->
+    <aside id="prop-panel">
+      <div class="prop-header">
+        <span>Properties</span>
+      </div>
+      <div class="prop-content" id="prop-content">
+        <div class="prop-no-selection">
+          <div class="prop-no-selection-icon">◻</div>
+          <div class="prop-no-selection-text">Select a widget to see its properties</div>
+        </div>
+      </div>
+    </aside>
+
+  </div><!-- /workspace -->
+</div><!-- /app -->
+
+<!-- ── Context Menu ── -->
+<div id="ctx-menu"></div>
+
+<!-- ── Toast container ── -->
+<div id="toast-container"></div>
+
+<!-- ── Export progress modal ── -->
+<div id="export-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.6);
+  backdrop-filter:blur(4px);z-index:9500;align-items:center;justify-content:center;">
+  <div class="modal">
+    <div class="export-progress">
+      <div class="export-spinner"></div>
+      <div class="export-msg" id="export-modal-msg">Preparing export…</div>
+    </div>
+  </div>
+</div>
+
+<!-- ── Shortcuts modal ──
+     Controlled exclusively via style.display in JS (main.js + ui.js).
+     The .visible class approach was dropped to keep a single control path. -->
+<div id="shortcuts-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.6);
+  backdrop-filter:blur(4px);z-index:9500;align-items:center;justify-content:center;">
+  <div class="modal" style="max-width:520px;">
+    <div class="modal-title">⌨ Keyboard Shortcuts</div>
+    <div class="modal-body">
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px 24px;font-size:12px;">
+        <div style="color:var(--muted)">Ctrl+Z</div>              <div style="color:var(--text)">Undo</div>
+        <div style="color:var(--muted)">Ctrl+Y / Ctrl+Shift+Z</div><div style="color:var(--text)">Redo</div>
+        <div style="color:var(--muted)">Ctrl+D</div>              <div style="color:var(--text)">Duplicate widget</div>
+        <div style="color:var(--muted)">Ctrl+S</div>              <div style="color:var(--text)">Save to browser</div>
+        <div style="color:var(--muted)">Delete / Backspace</div>  <div style="color:var(--text)">Remove widget</div>
+        <div style="color:var(--muted)">F2</div>                  <div style="color:var(--text)">Rename widget</div>
+        <div style="color:var(--muted)">Escape</div>              <div style="color:var(--text)">Deselect / close menus</div>
+        <div style="color:var(--muted)">Arrow keys</div>          <div style="color:var(--text)">Nudge widget 8px</div>
+        <div style="color:var(--muted)">Shift + Arrow</div>       <div style="color:var(--text)">Nudge widget 32px</div>
+        <div style="color:var(--muted)">Ctrl + Scroll</div>       <div style="color:var(--text)">Zoom in / out</div>
+        <div style="color:var(--muted)">Alt + drag</div>          <div style="color:var(--text)">Pan canvas</div>
+        <div style="color:var(--muted)">Middle-click drag</div>   <div style="color:var(--text)">Pan canvas</div>
+        <div style="color:var(--muted)">?</div>                   <div style="color:var(--text)">Toggle this help</div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="modal-btn primary" id="shortcuts-close">Close</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── JS Modules ── (order matters) -->
+<script src="js/app.js"></script>
+<script src="js/theme.js"></script>
+<script src="js/history.js"></script>
+<script src="js/api.js"></script>
+<script src="js/canvas.js"></script>
+<script src="js/drag.js"></script>
+<script src="js/renderers.js"></script>
+<script src="js/widgets.js"></script>
+<script src="js/export.js"></script>
+<script src="js/ui.js"></script>
+<script src="js/main.js"></script>
+
+</body>
+</html>

@@ -1,0 +1,220 @@
+/* ══════════════════════════════════════════════
+   SENTINEL CANVAS — THEME DEFINITIONS
+   All themes declare the same set of CSS vars.
+   ══════════════════════════════════════════════ */
+
+/* ── 1. Cyber Dark (default) ── */
+[data-theme="cyber-dark"] {
+  --bg:           #080b10;
+  --bg2:          #0d1117;
+  --surface:      #111620;
+  --surface2:     #161d2a;
+  --surface3:     #1c2436;
+  --border:       #1e2840;
+  --border2:      #2a3550;
+  --accent:       #00e5ff;
+  --accent-dim:   rgba(0,229,255,0.12);
+  --accent2:      #ff4560;
+  --accent2-dim:  rgba(255,69,96,0.12);
+  --accent3:      #00e096;
+  --accent3-dim:  rgba(0,224,150,0.12);
+  --warn:         #ffd166;
+  --warn-dim:     rgba(255,209,102,0.12);
+  --purple:       #a78bfa;
+  --blue:         #38bdf8;
+  --text:         #e2e8f0;
+  --text2:        #94a3b8;
+  --muted:        #4a5568;
+  --muted2:       #2d3748;
+  --font-ui:      'Outfit', sans-serif;
+  --font-mono:    'JetBrains Mono', monospace;
+  --radius:       8px;
+  --radius-sm:    5px;
+  --radius-lg:    12px;
+  --shadow:       0 4px 24px rgba(0,0,0,0.5);
+  --shadow-lg:    0 8px 48px rgba(0,0,0,0.6);
+  --glow:         0 0 20px rgba(0,229,255,0.15);
+  --sidebar-w:    240px;
+  --header-h:     52px;
+  --panel-w:      280px;
+}
+
+/* ── 2. Clean Light ── */
+[data-theme="clean-light"] {
+  --bg:           #f0f4f8;
+  --bg2:          #e8edf3;
+  --surface:      #ffffff;
+  --surface2:     #f7f9fc;
+  --surface3:     #eef2f7;
+  --border:       #dde3ec;
+  --border2:      #c8d0dc;
+  --accent:       #0066ff;
+  --accent-dim:   rgba(0,102,255,0.1);
+  --accent2:      #e53e3e;
+  --accent2-dim:  rgba(229,62,62,0.1);
+  --accent3:      #00875a;
+  --accent3-dim:  rgba(0,135,90,0.1);
+  --warn:         #d97706;
+  --warn-dim:     rgba(217,119,6,0.1);
+  --purple:       #7c3aed;
+  --blue:         #0284c7;
+  --text:         #1a202c;
+  --text2:        #4a5568;
+  --muted:        #718096;
+  --muted2:       #e2e8f0;
+  --font-ui:      'Outfit', sans-serif;
+  --font-mono:    'JetBrains Mono', monospace;
+  --radius:       8px;
+  --radius-sm:    5px;
+  --radius-lg:    12px;
+  --shadow:       0 2px 12px rgba(0,0,0,0.08);
+  --shadow-lg:    0 8px 32px rgba(0,0,0,0.12);
+  --glow:         0 0 20px rgba(0,102,255,0.1);
+  --sidebar-w:    240px;
+  --header-h:     52px;
+  --panel-w:      280px;
+}
+
+/* ── 3. Midnight Blue ── */
+[data-theme="midnight"] {
+  --bg:           #060d1f;
+  --bg2:          #0a1428;
+  --surface:      #0f1e38;
+  --surface2:     #142444;
+  --surface3:     #1a2d52;
+  --border:       #1e3560;
+  --border2:      #274070;
+  --accent:       #4d9fff;
+  --accent-dim:   rgba(77,159,255,0.12);
+  --accent2:      #ff6b6b;
+  --accent2-dim:  rgba(255,107,107,0.12);
+  --accent3:      #51cf66;
+  --accent3-dim:  rgba(81,207,102,0.12);
+  --warn:         #fcc419;
+  --warn-dim:     rgba(252,196,25,0.12);
+  --purple:       #cc5de8;
+  --blue:         #74c0fc;
+  --text:         #dce8ff;
+  --text2:        #8ba5cc;
+  --muted:        #4a6280;
+  --muted2:       #1e3560;
+  --font-ui:      'Outfit', sans-serif;
+  --font-mono:    'JetBrains Mono', monospace;
+  --radius:       8px;
+  --radius-sm:    5px;
+  --radius-lg:    12px;
+  --shadow:       0 4px 24px rgba(0,0,0,0.6);
+  --shadow-lg:    0 8px 48px rgba(0,0,0,0.7);
+  --glow:         0 0 20px rgba(77,159,255,0.15);
+  --sidebar-w:    240px;
+  --header-h:     52px;
+  --panel-w:      280px;
+}
+
+/* ── 4. Solarized ── */
+[data-theme="solarized"] {
+  --bg:           #002b36;
+  --bg2:          #00212b;
+  --surface:      #073642;
+  --surface2:     #0d4050;
+  --surface3:     #124a5c;
+  --border:       #1a5470;
+  --border2:      #205e7a;
+  --accent:       #2aa198;
+  --accent-dim:   rgba(42,161,152,0.15);
+  --accent2:      #dc322f;
+  --accent2-dim:  rgba(220,50,47,0.15);
+  --accent3:      #859900;
+  --accent3-dim:  rgba(133,153,0,0.15);
+  --warn:         #b58900;
+  --warn-dim:     rgba(181,137,0,0.15);
+  --purple:       #6c71c4;
+  --blue:         #268bd2;
+  --text:         #839496;
+  --text2:        #657b83;
+  --muted:        #3a6070;
+  --muted2:       #073642;
+  --font-ui:      'Outfit', sans-serif;
+  --font-mono:    'JetBrains Mono', monospace;
+  --radius:       8px;
+  --radius-sm:    5px;
+  --radius-lg:    12px;
+  --shadow:       0 4px 24px rgba(0,0,0,0.5);
+  --shadow-lg:    0 8px 48px rgba(0,0,0,0.6);
+  --glow:         0 0 20px rgba(42,161,152,0.15);
+  --sidebar-w:    240px;
+  --header-h:     52px;
+  --panel-w:      280px;
+}
+
+/* ── 5. High Contrast ── */
+[data-theme="high-contrast"] {
+  --bg:           #000000;
+  --bg2:          #0a0a0a;
+  --surface:      #111111;
+  --surface2:     #1a1a1a;
+  --surface3:     #222222;
+  --border:       #333333;
+  --border2:      #444444;
+  --accent:       #ffff00;
+  --accent-dim:   rgba(255,255,0,0.1);
+  --accent2:      #ff0000;
+  --accent2-dim:  rgba(255,0,0,0.1);
+  --accent3:      #00ff00;
+  --accent3-dim:  rgba(0,255,0,0.1);
+  --warn:         #ff8800;
+  --warn-dim:     rgba(255,136,0,0.1);
+  --purple:       #cc00ff;
+  --blue:         #00aaff;
+  --text:         #ffffff;
+  --text2:        #cccccc;
+  --muted:        #666666;
+  --muted2:       #222222;
+  --font-ui:      'Outfit', sans-serif;
+  --font-mono:    'JetBrains Mono', monospace;
+  --radius:       4px;
+  --radius-sm:    2px;
+  --radius-lg:    6px;
+  --shadow:       0 0 0 1px #333;
+  --shadow-lg:    0 0 0 2px #444;
+  --glow:         0 0 20px rgba(255,255,0,0.2);
+  --sidebar-w:    240px;
+  --header-h:     52px;
+  --panel-w:      280px;
+}
+
+/* ── 6. Terminal Green ── */
+[data-theme="terminal"] {
+  --bg:           #030a03;
+  --bg2:          #060e06;
+  --surface:      #0a160a;
+  --surface2:     #0f1f0f;
+  --surface3:     #142814;
+  --border:       #1a3a1a;
+  --border2:      #204820;
+  --accent:       #39ff14;
+  --accent-dim:   rgba(57,255,20,0.1);
+  --accent2:      #ff3914;
+  --accent2-dim:  rgba(255,57,20,0.1);
+  --accent3:      #14ffb4;
+  --accent3-dim:  rgba(20,255,180,0.1);
+  --warn:         #ffcc14;
+  --warn-dim:     rgba(255,204,20,0.1);
+  --purple:       #cc39ff;
+  --blue:         #14c8ff;
+  --text:         #a0e8a0;
+  --text2:        #5a945a;
+  --muted:        #2a5a2a;
+  --muted2:       #0f1f0f;
+  --font-ui:      'JetBrains Mono', monospace;
+  --font-mono:    'JetBrains Mono', monospace;
+  --radius:       4px;
+  --radius-sm:    2px;
+  --radius-lg:    6px;
+  --shadow:       0 4px 24px rgba(0,0,0,0.7);
+  --shadow-lg:    0 8px 48px rgba(0,0,0,0.8);
+  --glow:         0 0 20px rgba(57,255,20,0.2);
+  --sidebar-w:    240px;
+  --header-h:     52px;
+  --panel-w:      280px;
+}

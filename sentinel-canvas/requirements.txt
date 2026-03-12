@@ -1,3 +1,0 @@
-# Sentinel Canvas has no additional dependencies.
-# Uses Python standard library only (http.server, os, sys).
-# Requires Python 3.8+
