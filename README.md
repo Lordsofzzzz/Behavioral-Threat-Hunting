@@ -23,8 +23,16 @@ Log Sentinel is a lightweight, real-time log monitor for Nginx-style access logs
 - Added Dockerized one-command demo stack (`sentinel`, `dashboard`, `simulator`).
 - Added open-source maturity assets: CI workflow, LICENSE, contribution templates, code of conduct, and security policy.
 
+## Release Highlights (Mar 2026)
+- Improved dashboard reliability under concurrent requests by moving to a threaded HTTP server.
+- Added thread-safe alert parsing cache in dashboard API to avoid race conditions and stale reads.
+- Improved Sentinel Canvas API client with in-flight request deduplication, timeout handling, and transient retry logic.
+- Added automated GitHub Release workflow triggered by version tags (`vX.Y.Z`) to publish downloadable zip bundles.
+- Added Windows release helper script (`build-release.bat`) with safeguards (version validation, dirty-tree warning, duplicate tag checks).
+
 ## Project Structure
 - .github/: CI and contribution templates
+  - workflows/release.yml: Tag-triggered build and release pipeline
 - docs/: architecture and demo docs
 - log-sentinel/
   - sentinel.py: Log monitor and detection engine
@@ -36,6 +44,12 @@ Log Sentinel is a lightweight, real-time log monitor for Nginx-style access logs
   - evaluation/: Benchmark dataset and metrics scripts
   - data/: Runtime log files (git-ignored)
   - test.sh: Log attack simulator (bash)
+- sentinel-canvas/
+  - canvas-server.py: Lightweight static server for Canvas UI
+  - index.html: Canvas main page
+  - css/: Styling modules
+  - js/: Canvas builder, widget, and API client modules
+- build-release.bat: Windows helper to create and push release tags safely
 - PHASED_IMPROVEMENT_PLAN.md: Final-year implementation roadmap
 
 ## Requirements
@@ -68,6 +82,47 @@ python Dashboard-server.py
 ```
 
 Then open http://localhost:8888 in a browser.
+
+## Run Sentinel Canvas (Optional)
+In another terminal, from sentinel-canvas:
+
+```bash
+python canvas-server.py
+```
+
+Then open http://localhost:8889 in a browser.
+Canvas can consume the dashboard API from `http://localhost:8888`.
+
+## Download the Right Release Bundle
+Each tagged release publishes 3 zip packages. Choose based on your use case:
+
+- `sentinel-core-only-vX.Y.Z.zip`
+  - Includes only `log-sentinel/`
+  - Use this if you only need the detection engine + classic dashboard API/UI
+- `sentinel-canvas-only-vX.Y.Z.zip`
+  - Includes only `sentinel-canvas/`
+  - Use this if you already run the core backend and only want the drag-and-drop Canvas frontend
+- `sentinel-full-bundle-vX.Y.Z.zip`
+  - Includes both `log-sentinel/` and `sentinel-canvas/`
+  - Best choice for first-time setup and demos
+
+Practical recommendation:
+- New users: download full bundle
+- Security lab / backend-only deployment: download core-only
+- UI-only upgrade for existing core install: download canvas-only
+
+## Create a New Release (Maintainers)
+From repository root on a clean branch:
+
+```bat
+build-release.bat 1.2.3
+```
+
+What this does:
+- Normalizes the version to `v1.2.3`
+- Warns if there are uncommitted changes
+- Prevents duplicate local or remote tags
+- Pushes the tag so GitHub Actions builds and publishes the 3 zip bundles
 
 ## One-Command Docker Demo
 From the repository root:
@@ -124,6 +179,8 @@ Alerts are written to `log-sentinel/data/alerts.log` and optionally printed to t
 - GET /api/alerts (last 100 alerts)
 - GET /api/stats (summary stats)
 - GET /api/incidents (correlated incidents by IP and time window)
+
+Sentinel Canvas reads these same API endpoints and renders them as configurable widgets.
 
 ## Notes
 - The Nginx log regex expects the default combined log format.
