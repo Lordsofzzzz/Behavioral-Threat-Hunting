@@ -1,9 +1,7 @@
 services:
   demo-webapp:
-    profiles: ["demo", "full"]
     build:
-      context: ./apps/demo-webapp
-      dockerfile: Dockerfile
+      context: ../../apps/demo-webapp
     container_name: demo-webapp
     ports:
       - "8088:80"
@@ -12,10 +10,8 @@ services:
     restart: unless-stopped
 
   log-generator:
-    profiles: ["demo", "full"]
     build:
-      context: ./apps/log-generator
-      dockerfile: Dockerfile
+      context: ../../apps/log-generator
     container_name: log-generator
     environment:
       TARGET_URL: http://demo-webapp
@@ -24,46 +20,22 @@ services:
       - demo-webapp
     restart: unless-stopped
 
-  sentinel:
-    profiles: ["engine", "core", "portal", "full"]
+  sentinel-engine:
     build:
-      context: ./log-sentinel
-      dockerfile: Dockerfile
-    container_name: log-sentinel-engine
-    working_dir: /app
-    command: ["python", "sentinel.py"]
-    volumes:
-      - ./log-sentinel:/app
-    restart: unless-stopped
-
-  dashboard:
-    profiles: ["dashboard", "core", "portal", "full"]
-    build:
-      context: ./log-sentinel
-      dockerfile: Dockerfile
-    container_name: log-sentinel-dashboard
-    working_dir: /app
-    command: ["python", "Dashboard-server.py"]
+      context: ../../apps/sentinel-engine
+    container_name: sentinel-engine
     ports:
-      - "8888:8888"
+      - "8000:8000"
     volumes:
-      - ./log-sentinel:/app
+      - nginx_logs:/var/log/nginx:ro
+      - ../../apps/sentinel-engine/rules:/app/rules:ro
+    environment:
+      LOG_FILE: /var/log/nginx/access.log
+    depends_on:
+      - demo-webapp
     restart: unless-stopped
-
-  simulator:
-    profiles: ["simulator", "full"]
-    build:
-      context: ./log-sentinel
-      dockerfile: Dockerfile
-    container_name: log-sentinel-simulator
-    working_dir: /app
-    command: ["python", "demo_simulator.py"]
-    volumes:
-      - ./log-sentinel:/app
-    restart: "no"
 
   postgres:
-    profiles: ["portal", "full"]
     image: postgres:16-alpine
     container_name: portal-postgres
     environment:
@@ -73,16 +45,15 @@ services:
     ports:
       - "5432:5432"
     volumes:
-      - portal_postgres_data:/var/lib/postgresql/data
+      - postgres_data:/var/lib/postgresql/data
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U portal -d portaldb"]
       interval: 5s
       timeout: 5s
-      retries: 20
+      retries: 10
     restart: unless-stopped
 
   redis:
-    profiles: ["portal", "full"]
     image: redis:7-alpine
     container_name: portal-redis
     ports:
@@ -90,53 +61,71 @@ services:
     restart: unless-stopped
 
   portal-api:
-    profiles: ["portal", "full"]
     build:
-      context: ./apps/portal-api
-      dockerfile: Dockerfile
+      context: ../../apps/portal-api
     container_name: portal-api
-    environment:
-      DATABASE_URL: postgresql+psycopg://portal:portal@postgres:5432/portaldb
-      SENTINEL_API_URL: http://dashboard:8888
-      GRAFANA_BASE_URL: http://grafana:3000
     ports:
       - "8080:8080"
+    environment:
+      DATABASE_URL: postgresql+psycopg://portal:portal@postgres:5432/portaldb
+      SENTINEL_API_URL: http://sentinel-engine:8000
+      GRAFANA_BASE_URL: http://grafana:3000
     depends_on:
       postgres:
         condition: service_healthy
-      dashboard:
+      sentinel-engine:
         condition: service_started
     restart: unless-stopped
 
   portal-ui:
-    profiles: ["portal", "full"]
     build:
-      context: ./apps/portal-ui
-      dockerfile: Dockerfile
+      context: ../../apps/portal-ui
     container_name: portal-ui
+    ports:
+      - "3001:3001"
     environment:
       NEXT_PUBLIC_PORTAL_API_URL: http://localhost:8080
       NEXT_PUBLIC_GRAFANA_URL: http://localhost:3000
-    ports:
-      - "3001:3001"
     depends_on:
       - portal-api
     restart: unless-stopped
 
+  loki:
+    image: grafana/loki:3.1.1
+    container_name: loki
+    command: -config.file=/etc/loki/config.yml
+    ports:
+      - "3100:3100"
+    volumes:
+      - ../../infra/loki/config.yml:/etc/loki/config.yml:ro
+    restart: unless-stopped
+
+  promtail:
+    image: grafana/promtail:3.1.1
+    container_name: promtail
+    command: -config.file=/etc/promtail/config.yml
+    ports:
+      - "9080:9080"
+    volumes:
+      - ../../infra/promtail/config.yml:/etc/promtail/config.yml:ro
+      - nginx_logs:/var/log/nginx:ro
+    depends_on:
+      - loki
+      - demo-webapp
+    restart: unless-stopped
+
   prometheus:
-    profiles: ["observability", "full"]
-    image: prom/prometheus:v2.54.1
+    image: prom/prometheus:latest
     container_name: prometheus
     ports:
       - "9090:9090"
     volumes:
-      - ./infra/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - ../../infra/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
     command:
       - "--config.file=/etc/prometheus/prometheus.yml"
     restart: unless-stopped
 
   grafana:
-    profiles: ["observability", "full"]
     image: grafana/grafana:11.2.0
     container_name: grafana
     ports:
@@ -148,12 +137,26 @@ services:
       GF_AUTH_ANONYMOUS_ORG_ROLE: Viewer
       GF_SECURITY_ALLOW_EMBEDDING: "true"
     volumes:
-      - ./infra/grafana/provisioning:/etc/grafana/provisioning:ro
-      - ./infra/grafana/dashboards:/var/lib/grafana/dashboards:ro
+      - ../../infra/grafana/provisioning:/etc/grafana/provisioning:ro
+      - ../../infra/grafana/dashboards:/var/lib/grafana/dashboards:ro
     depends_on:
       - prometheus
+      - loki
+    restart: unless-stopped
+
+  homarr:
+    image: ghcr.io/homarr-labs/homarr:latest
+    container_name: homarr
+    ports:
+      - "7575:7575"
+    environment:
+      TZ: Asia/Kolkata
+      SECRET_ENCRYPTION_KEY: c1626f4ebb174158ce79839cfe59fdc8bbcacc66d6b74471da28fa20bfe8f47a
+    volumes:
+      - homarr_appdata:/appdata
     restart: unless-stopped
 
 volumes:
   nginx_logs:
-  portal_postgres_data:
+  postgres_data:
+  homarr_appdata:

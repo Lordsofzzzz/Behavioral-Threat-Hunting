@@ -135,6 +135,14 @@ Quick Start Matrix:
 | Windows CMD | `run-stack.bat full up` | `run-stack.bat full logs` | `run-stack.bat full down` |
 | Linux/macOS | `./run-stack.sh full up` | `./run-stack.sh full logs` | `./run-stack.sh full down` |
 
+Demo-only profile (web target + traffic generator):
+
+| OS / Shell | Start Demo | Logs | Stop |
+|---|---|---|---|
+| Windows PowerShell | `./run-stack.ps1 -Profile demo -Action up` | `./run-stack.ps1 -Profile demo -Action logs` | `./run-stack.ps1 -Profile demo -Action down` |
+| Windows CMD | `run-stack.bat demo up` | `run-stack.bat demo logs` | `run-stack.bat demo down` |
+| Linux/macOS | `./run-stack.sh demo up` | `./run-stack.sh demo logs` | `./run-stack.sh demo down` |
+
 From the repository root:
 
 ```bash
@@ -169,6 +177,7 @@ Run components separately (isolated profiles):
 ./run-stack.ps1 -Profile engine -Action up     # sentinel only
 ./run-stack.ps1 -Profile dashboard -Action up  # dashboard only
 ./run-stack.ps1 -Profile simulator -Action up  # simulator only
+./run-stack.ps1 -Profile demo -Action up       # demo-webapp + log-generator
 ./run-stack.ps1 -Profile portal -Action up     # postgres + redis + portal-api + portal-ui
 ./run-stack.ps1 -Profile observability -Action up  # prometheus + grafana
 ```
@@ -180,6 +189,7 @@ Linux/macOS profile examples:
 ./run-stack.sh engine up
 ./run-stack.sh dashboard up
 ./run-stack.sh simulator up
+./run-stack.sh demo up
 ./run-stack.sh portal up
 ./run-stack.sh observability up
 ```
@@ -201,6 +211,8 @@ run-stack.bat help
 This allows one component group to fail without stopping other independently-run groups.
 
 This starts:
+- `demo-webapp` (Nginx target app on `http://localhost:8088`)
+- `log-generator` (continuous mixed benign/attack traffic for demos)
 - `sentinel` (detection engine)
 - `dashboard` (UI/API on `http://localhost:8888`)
 - `simulator` (scripted attack traffic generator for demo)
