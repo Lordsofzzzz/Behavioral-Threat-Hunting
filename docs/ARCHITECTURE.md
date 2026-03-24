@@ -10,23 +10,41 @@ Log Sentinel is a real-time web threat hunting pipeline with four major stages:
 ## Architecture Diagram
 ```mermaid
 flowchart LR
-    A[Access Log Source\nNginx-style log lines] --> B[Sentinel Engine\nparsing + normalization]
-    B --> C[Signature Detection\nSQLi/XSS/Traversal/CMDi/Scanner]
-    B --> D[Behavioral Detection\nbaseline + anomalies]
-    C --> E[Alert Enrichment\nscore + reasons + severity]
-    D --> E
-    E --> F[data/alerts.log\nappend-only evidence]
+  T[Demo Simulator / Real Traffic] --> A[Access Log Source\nNginx-style log lines]
+  A --> B[Sentinel Engine\nparsing + normalization]
+  B --> C[Signature Detection\nSQLi/XSS/Traversal/CMDi/Scanner]
+  B --> D[Behavioral Detection\nbaseline + anomalies]
+  C --> E[Alert Enrichment\nscore + reasons + severity]
+  D --> E
+  E --> F[data/alerts.log\nappend-only evidence]
 
-    F --> G[Dashboard API Server\nparse + stats + incidents]
-    G --> H[/api/alerts]
-    G --> I[/api/stats]
-    G --> J[/api/incidents]
+  F --> G[Dashboard API Server\nthreaded parse + cache + incidents]
+  G --> H[/api/alerts]
+  G --> I[/api/stats]
+  G --> J[/api/incidents]
+  G --> K[/api/prometheus/query-range]
+  G --> L[/api/grafana/embed-preview]
 
-    H --> K[Dashboard UI]
-    I --> K
-    J --> K
+  subgraph Portal Workflow
+    M[Portal API\nFastAPI + Postgres + Redis]
+    N[Portal UI\nNext.js analyst workspace]
+  end
 
-    L[Demo Simulator / Real Traffic] --> A
+  H --> M
+  I --> M
+  J --> M
+  K --> M
+  L --> M
+  M --> N
+
+  subgraph Observability Workflow
+    O[Prometheus]
+    P[Grafana]
+  end
+
+  G --> O
+  O --> P
+  P --> N
 ```
 
 ## Core Components
@@ -94,5 +112,7 @@ flowchart LR
 2. Sentinel parses and normalizes it.
 3. Signature and behavioral detectors run.
 4. Alert is scored, reasoned, deduplicated, and logged.
-5. Dashboard server parses alert log and computes stats/incidents.
-6. Dashboard UI polls APIs and renders live analytics.
+5. Dashboard server parses alert log, computes stats/incidents, and exposes Grafana helper APIs.
+6. Portal API consumes dashboard endpoints and persists workspace/dashboard metadata in Postgres/Redis.
+7. Portal UI renders customizable analyst views with embedded Sentinel and Grafana context.
+8. Prometheus scrapes metrics, Grafana visualizes trends, and embeds are surfaced inside Portal UI.
