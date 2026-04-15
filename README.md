@@ -28,7 +28,11 @@ Log Sentinel is a lightweight, real-time log monitor for Nginx-style access logs
 - Added thread-safe alert parsing cache in dashboard API to avoid race conditions and stale reads.
 - Integrated teammate-style Portal stack (FastAPI + Next.js + Postgres) for customizable dashboard workflows.
 - Added automated GitHub Release workflow triggered by version tags (`vX.Y.Z`) to publish core and full downloadable bundles.
-- Added Windows release helper script (`build-release.bat`) with safeguards (version validation, dirty-tree warning, duplicate tag checks).
+
+## Release Highlights (Apr 2026)
+- **Code Audit & Streamlining:** Refactored core engine for better maintainability (DRY detection logic).
+- **Dashboard Cleanup:** Removed legacy observability proxy logic from the lightweight dashboard server.
+- **Project Structure Optimization:** Removed redundant launcher scripts and decluttered the project root.
 
 ## Project Structure
 - .github/: CI and contribution templates
@@ -49,7 +53,6 @@ Log Sentinel is a lightweight, real-time log monitor for Nginx-style access logs
   - portal-ui/: Next.js analyst UI with embedded dashboard workspace
 - infra/
   - grafana/, prometheus/, loki/, promtail/: observability stack configs (compose optional profiles)
-- build-release.bat: Windows helper to create and push release tags safely
 - PHASED_IMPROVEMENT_PLAN.md: Final-year implementation roadmap
 
 ## Requirements
@@ -109,134 +112,12 @@ Then open:
 
 Portal API is already integrated with Log Sentinel dashboard APIs.
 
-## Download the Right Release Bundle
-Current release automation in this repository focuses on the Log Sentinel core bundle.
-For the new Portal-based customization workflow, use source checkout from this repository and run with Docker Compose profiles (`portal`, `observability`, or `full`).
-
-## Create a New Release (Maintainers)
-From repository root on a clean branch:
-
-```bat
-build-release.bat 1.2.3
-```
-
-What this does:
-- Normalizes the version to `v1.2.3`
-- Warns if there are uncommitted changes
-- Prevents duplicate local or remote tags
-- Pushes the tag so GitHub Actions builds and publishes release bundles
-
 ## One-Command Docker Demo
 Quick Start Matrix:
 
-| OS / Shell | Start Full Stack | Logs | Stop |
-|---|---|---|---|
-| Windows PowerShell | `./run-stack.ps1 -Profile full -Action up` | `./run-stack.ps1 -Profile full -Action logs` | `./run-stack.ps1 -Profile full -Action down` |
-| Windows CMD | `run-stack.bat full up` | `run-stack.bat full logs` | `run-stack.bat full down` |
-| Linux/macOS | `./run-stack.sh full up` | `./run-stack.sh full logs` | `./run-stack.sh full down` |
-
-Demo-only profile (web target + traffic generator):
-
-| OS / Shell | Start Demo | Logs | Stop |
-|---|---|---|---|
-| Windows PowerShell | `./run-stack.ps1 -Profile demo -Action up` | `./run-stack.ps1 -Profile demo -Action logs` | `./run-stack.ps1 -Profile demo -Action down` |
-| Windows CMD | `run-stack.bat demo up` | `run-stack.bat demo logs` | `run-stack.bat demo down` |
-| Linux/macOS | `./run-stack.sh demo up` | `./run-stack.sh demo logs` | `./run-stack.sh demo down` |
-
-From the repository root:
-
-```bash
-docker compose --profile full up --build
-```
-
-Or use one command launcher scripts:
-
-PowerShell:
-
-```powershell
-./run-stack.ps1 -Profile full -Action up
-```
-
-CMD:
-
-```bat
-run-stack.bat full up
-```
-
-Linux/macOS:
-
-```bash
-chmod +x ./run-stack.sh
-./run-stack.sh full up
-```
-
-Run components separately (isolated profiles):
-
-```powershell
-./run-stack.ps1 -Profile core -Action up       # sentinel + dashboard
-./run-stack.ps1 -Profile engine -Action up     # sentinel only
-./run-stack.ps1 -Profile dashboard -Action up  # dashboard only
-./run-stack.ps1 -Profile simulator -Action up  # simulator only
-./run-stack.ps1 -Profile demo -Action up       # demo-webapp + log-generator
-./run-stack.ps1 -Profile portal -Action up     # postgres + redis + portal-api + portal-ui
-./run-stack.ps1 -Profile observability -Action up  # prometheus + grafana
-./run-stack.ps1 -Profile homarr -Action up     # Homarr launcher dashboard
-```
-
-Linux/macOS profile examples:
-
-```bash
-./run-stack.sh core up
-./run-stack.sh engine up
-./run-stack.sh dashboard up
-./run-stack.sh simulator up
-./run-stack.sh demo up
-./run-stack.sh portal up
-./run-stack.sh observability up
-./run-stack.sh homarr up
-```
-
-Show launcher help:
-
-```powershell
-./run-stack.ps1 -Help
-```
-
-```bat
-run-stack.bat help
-```
-
-```bash
-./run-stack.sh --help
-```
-
-This allows one component group to fail without stopping other independently-run groups.
-
-This starts:
-- `demo-webapp` (Nginx target app on `http://localhost:8088`)
-- `log-generator` (continuous mixed benign/attack traffic for demos)
-- `sentinel` (detection engine)
-- `dashboard` (UI/API on `http://localhost:8888`)
-- `simulator` (scripted attack traffic generator for demo)
-- `postgres`, `redis`, `portal-api`, `portal-ui` (customizable dashboard workflow)
-- `prometheus`, `grafana` (observability profile)
-- `homarr` (service launcher and quick navigation at `http://localhost:7575`)
-
-Stop with:
-
-```bash
-docker compose down
-```
-
-or with launchers:
-
-```powershell
-./run-stack.ps1 -Profile full -Action down
-```
-
-```bash
-./run-stack.sh full down
-```
+| OS / Shell | Start Full Stack |
+|---|---|
+| Linux/macOS/Windows | `docker compose --profile full up --build` |
 
 ## Simulate Attacks
 The test script appends sample attack lines to the configured log.

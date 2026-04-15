@@ -347,9 +347,12 @@ class LogSentinel:
         return True
     
     def detect_attacks(self, log_entry):
-        """Analyze log entry for various attack types"""
+        """Analyze log entry for various attack types using streamlined detection logic"""
         alerts = []
         ip = log_entry['ip']
+        if ip in self.whitelist_ips:
+            return alerts
+
         path = log_entry.get('path', '')
         normalized_path = self.normalize_path(path)
         useragent = log_entry.get('useragent', '-')
@@ -369,87 +372,37 @@ class LogSentinel:
 
         history_count = self.ip_total_requests[ip]
         self.ip_total_requests[ip] += 1
-        
-        # Skip whitelisted IPs
-        if ip in self.whitelist_ips:
-            return alerts
-        
-        # SQL Injection Detection
-        if self.config.get('enable_sqli_detection', True):
-            matched = self.check_patterns(normalized_path, self.patterns.get('sqli', []))
-            if matched:
-                score = self.score_alert('SQL Injection', path=normalized_path, useragent=useragent)
-                alerts.append({
-                    'type': 'SQL Injection',
-                    'severity': self.score_to_severity(score),
-                    'score': score,
-                    'pattern': matched,
-                    'reasons': self.build_reasons(matched_pattern=matched, decoded=is_decoded),
-                    'ip': ip,
-                    'path': normalized_path
-                })
-        
-        # XSS Detection
-        if self.config.get('enable_xss_detection', True):
-            matched = self.check_patterns(normalized_path, self.patterns.get('xss', []))
-            if matched:
-                score = self.score_alert('Cross-Site Scripting', path=normalized_path, useragent=useragent)
-                alerts.append({
-                    'type': 'Cross-Site Scripting',
-                    'severity': self.score_to_severity(score),
-                    'score': score,
-                    'pattern': matched,
-                    'reasons': self.build_reasons(matched_pattern=matched, decoded=is_decoded),
-                    'ip': ip,
-                    'path': normalized_path
-                })
-        
-        # Path Traversal Detection
-        if self.config.get('enable_traversal_detection', True):
-            matched = self.check_patterns(normalized_path, self.patterns.get('traversal', []))
-            if matched:
-                score = self.score_alert('Path Traversal', path=normalized_path, useragent=useragent)
-                alerts.append({
-                    'type': 'Path Traversal',
-                    'severity': self.score_to_severity(score),
-                    'score': score,
-                    'pattern': matched,
-                    'reasons': self.build_reasons(matched_pattern=matched, decoded=is_decoded),
-                    'ip': ip,
-                    'path': normalized_path
-                })
-        
-        # Command Injection Detection
-        if self.config.get('enable_cmdi_detection', True):
-            matched = self.check_patterns(normalized_path, self.patterns.get('cmdi', []))
-            if matched:
-                score = self.score_alert('Command Injection', path=normalized_path, useragent=useragent)
-                alerts.append({
-                    'type': 'Command Injection',
-                    'severity': self.score_to_severity(score),
-                    'score': score,
-                    'pattern': matched,
-                    'reasons': self.build_reasons(matched_pattern=matched, decoded=is_decoded),
-                    'ip': ip,
-                    'path': normalized_path
-                })
-        
-        # Scanner Detection (User-Agent)
-        if self.config.get('enable_scanner_detection', True):
-            matched = self.check_patterns(useragent, self.patterns.get('scanner', []))
-            if matched:
-                score = self.score_alert('Security Scanner', path=normalized_path, useragent=useragent)
-                alerts.append({
-                    'type': 'Security Scanner',
-                    'severity': self.score_to_severity(score),
-                    'score': score,
-                    'pattern': matched,
-                    'reasons': self.build_reasons(matched_pattern=matched),
-                    'ip': ip,
-                    'useragent': useragent
-                })
-        
-        # Rate Limiting
+
+        # 1. Pattern-based detection (DRY)
+        attack_map = {
+            'sqli': 'SQL Injection',
+            'xss': 'Cross-Site Scripting',
+            'traversal': 'Path Traversal',
+            'cmdi': 'Command Injection',
+            'scanner': 'Security Scanner'
+        }
+
+        for rule_key, alert_type in attack_map.items():
+            if self.config.get(f'enable_{rule_key}_detection', True):
+                text_to_check = useragent if rule_key == 'scanner' else normalized_path
+                matched = self.check_patterns(text_to_check, self.patterns.get(rule_key, []))
+                if matched:
+                    score = self.score_alert(alert_type, path=normalized_path, useragent=useragent)
+                    alert = {
+                        'type': alert_type,
+                        'severity': self.score_to_severity(score),
+                        'score': score,
+                        'pattern': matched,
+                        'reasons': self.build_reasons(matched_pattern=matched, decoded=is_decoded),
+                        'ip': ip
+                    }
+                    if rule_key == 'scanner':
+                        alert['useragent'] = useragent
+                    else:
+                        alert['path'] = normalized_path
+                    alerts.append(alert)
+
+        # 2. Rate Limiting
         if self.config.get('rate_limit_enabled', True):
             if recent_requests > self.config.get('rate_limit_threshold', 60):
                 score = self.score_alert('Rate Limit Exceeded', path=normalized_path, useragent=useragent, recent_requests=recent_requests)
@@ -462,15 +415,13 @@ class LogSentinel:
                     'requests': recent_requests,
                     'window': self.config.get('rate_limit_window', 60)
                 })
-        
-        # 404 Spam Detection (Reconnaissance)
+
+        # 3. 404 Spam Detection
         if self.config.get('enable_404_detection', True) and status == 404:
             self.ip_404s[ip].append(current_time)
-            
-            # Count 404s in the last minute
-            threshold_time = current_time - 60
-            recent_404s = sum(1 for t in self.ip_404s[ip] if t > threshold_time)
-            
+            threshold_404 = current_time - 60
+            recent_404s = sum(1 for t in self.ip_404s[ip] if t > threshold_404)
+
             if recent_404s > self.config.get('max_404_per_minute', 10):
                 score = self.score_alert('404 Spam (Reconnaissance)', path=normalized_path, useragent=useragent, recent_404s=recent_404s)
                 alerts.append({
@@ -482,72 +433,47 @@ class LogSentinel:
                     'count': recent_404s
                 })
 
-        # Behavioral anomaly detection (unique differentiator)
+        # 4. Behavioral anomaly detection
         if self.config.get('enable_behavioral_detection', True):
-            path_history_threshold = self.config.get('behavior_new_endpoint_min_history', 15)
-            ua_history_threshold = self.config.get('behavior_new_ua_min_history', 15)
-            baseline_min = self.config.get('behavior_baseline_min_requests', 20)
-            spike_multiplier = self.config.get('behavior_rate_spike_multiplier', 2.5)
+            self._check_behavioral_anomalies(alerts, ip, normalized_path, useragent, history_count, recent_requests, previous_baseline)
 
-            known_paths = self.ip_known_paths[ip]
-            known_uas = self.ip_known_useragents[ip]
+        self.ip_known_paths[ip].add(normalized_path)
+        if useragent != '-':
+            self.ip_known_useragents[ip].add(useragent)
 
-            if history_count >= path_history_threshold and normalized_path not in known_paths:
-                score = self.score_alert(
-                    'Behavioral Anomaly',
-                    path=normalized_path,
-                    useragent=useragent,
-                    recent_requests=recent_requests
-                )
+        return alerts
+
+    def _check_behavioral_anomalies(self, alerts, ip, path, useragent, history_count, recent_requests, previous_baseline):
+        """Helper to detect behavioral deviations"""
+        path_history_threshold = self.config.get('behavior_new_endpoint_min_history', 15)
+        ua_history_threshold = self.config.get('behavior_new_ua_min_history', 15)
+        baseline_min = self.config.get('behavior_baseline_min_requests', 20)
+        spike_multiplier = self.config.get('behavior_rate_spike_multiplier', 2.5)
+
+        # New Endpoint
+        if history_count >= path_history_threshold and path not in self.ip_known_paths[ip]:
+            score = self.score_alert('Behavioral Anomaly', path=path, useragent=useragent, recent_requests=recent_requests)
+            alerts.append({'type': 'Behavioral Anomaly', 'severity': self.score_to_severity(score), 'score': score,
+                          'reasons': self.build_reasons(notes=['new-endpoint-for-ip', f'ip-history:{history_count}']),
+                          'ip': ip, 'path': path})
+
+        # New User-Agent
+        if useragent != '-' and history_count >= ua_history_threshold and useragent not in self.ip_known_useragents[ip]:
+            score = self.score_alert('Behavioral Anomaly', path=path, useragent=useragent, recent_requests=recent_requests)
+            alerts.append({'type': 'Behavioral Anomaly', 'severity': self.score_to_severity(score), 'score': score,
+                          'reasons': self.build_reasons(notes=['new-useragent-for-ip', f'ip-history:{history_count}']),
+                          'ip': ip, 'useragent': useragent, 'path': path})
+
+        # Rate Spike
+        if history_count >= baseline_min and previous_baseline > 0:
+            anomaly_ratio = recent_requests / max(previous_baseline, 1.0)
+            if anomaly_ratio >= spike_multiplier:
+                score = self.score_alert('Behavioral Anomaly', path=path, useragent=useragent, recent_requests=recent_requests, anomaly_ratio=anomaly_ratio)
                 alerts.append({
-                    'type': 'Behavioral Anomaly',
-                    'severity': self.score_to_severity(score),
-                    'score': score,
-                    'reasons': self.build_reasons(notes=['new-endpoint-for-ip', f'ip-history:{history_count}']),
-                    'ip': ip,
-                    'path': normalized_path
+                    'type': 'Behavioral Anomaly', 'severity': self.score_to_severity(score), 'score': score,
+                    'reasons': self.build_reasons(recent_requests=recent_requests, notes=[f'baseline-rate:{previous_baseline:.1f}', f'spike-ratio:{anomaly_ratio:.2f}x']),
+                    'ip': ip, 'path': path, 'requests': recent_requests, 'window': self.config.get('rate_limit_window', 60)
                 })
-
-            if useragent != '-' and history_count >= ua_history_threshold and useragent not in known_uas:
-                score = self.score_alert(
-                    'Behavioral Anomaly',
-                    path=normalized_path,
-                    useragent=useragent,
-                    recent_requests=recent_requests
-                )
-                alerts.append({
-                    'type': 'Behavioral Anomaly',
-                    'severity': self.score_to_severity(score),
-                    'score': score,
-                    'reasons': self.build_reasons(notes=['new-useragent-for-ip', f'ip-history:{history_count}']),
-                    'ip': ip,
-                    'useragent': useragent,
-                    'path': normalized_path
-                })
-
-            if history_count >= baseline_min and previous_baseline > 0:
-                anomaly_ratio = recent_requests / max(previous_baseline, 1.0)
-                if anomaly_ratio >= spike_multiplier:
-                    score = self.score_alert(
-                        'Behavioral Anomaly',
-                        path=normalized_path,
-                        useragent=useragent,
-                        recent_requests=recent_requests,
-                        anomaly_ratio=anomaly_ratio
-                    )
-                    alerts.append({
-                        'type': 'Behavioral Anomaly',
-                        'severity': self.score_to_severity(score),
-                        'score': score,
-                        'reasons': self.build_reasons(
-                            recent_requests=recent_requests,
-                            notes=[f'baseline-rate:{previous_baseline:.1f}', f'spike-ratio:{anomaly_ratio:.2f}x']
-                        ),
-                        'ip': ip,
-                        'path': normalized_path,
-                        'requests': recent_requests,
-                        'window': self.config.get('rate_limit_window', 60)
-                    })
 
         self.ip_known_paths[ip].add(normalized_path)
         if useragent != '-':

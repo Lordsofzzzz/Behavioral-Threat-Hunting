@@ -13,17 +13,13 @@ from datetime import datetime
 from collections import defaultdict
 from http.server import ThreadingHTTPServer, BaseHTTPRequestHandler
 from typing import Optional
-from urllib.parse import urlparse, parse_qs, urlencode
-from urllib.request import urlopen
-from urllib.error import URLError, HTTPError
-
+from urllib.parse import urlparse, parse_qs
 
 ALERTS_LOG = 'data/alerts.log'
 HOST = os.getenv('DASHBOARD_HOST', '0.0.0.0')
 PORT = int(os.getenv('DASHBOARD_PORT', '8888'))
 INCIDENT_WINDOW_MINUTES = 10
-PROMETHEUS_BASE_URL = os.getenv('PROMETHEUS_BASE_URL', 'http://localhost:9090')
-GRAFANA_BASE_URL = os.getenv('GRAFANA_BASE_URL', 'http://localhost:3000')
+
 
 # --- Simple file-level cache for parsed alerts ---
 _alerts_cache = []
@@ -223,19 +219,12 @@ def build_incidents(alerts, window_minutes=INCIDENT_WINDOW_MINUTES):
 
 
 def build_stats(alerts, incidents=None):
-    """Build summary statistics from alerts.
-    Pass pre-built incidents to avoid calling build_incidents twice per /api/stats request."""
+    """Build summary statistics from alerts."""
     if not alerts:
         return {
-            'total': 0,
-            'critical': 0,
-            'warning': 0,
-            'avg_score': 0,
-            'behavioral_anomalies': 0,
-            'incident_count': 0,
-            'top_ips': [],
-            'attack_types': [],
-            'timeline': []
+            'total': 0, 'critical': 0, 'warning': 0, 'avg_score': 0,
+            'behavioral_anomalies': 0, 'incident_count': 0, 'top_ips': [],
+            'attack_types': [], 'timeline': []
         }
 
     critical = sum(1 for a in alerts if a.get('severity') == 'CRITICAL')
@@ -243,32 +232,21 @@ def build_stats(alerts, incidents=None):
     avg_score = int(sum(a.get('score', 0) for a in alerts) / len(alerts))
     behavioral_anomalies = sum(1 for a in alerts if a.get('type') == 'Behavioral Anomaly')
 
-    # Top attacking IPs
     ip_counts = defaultdict(int)
-    for a in alerts:
-        if 'ip' in a:
-            ip_counts[a['ip']] += 1
-    top_ips = sorted(ip_counts.items(), key=lambda x: x[1], reverse=True)[:10]
-
-    # Attack type breakdown
     type_counts = defaultdict(int)
-    for a in alerts:
-        if 'type' in a:
-            type_counts[a['type']] += 1
-    attack_types = sorted(type_counts.items(), key=lambda x: x[1], reverse=True)
-
-    # Timeline - group by hour
     hour_counts = defaultdict(int)
-    for a in alerts:
-        if 'time' in a:
-            try:
-                hour = a['time'][:13]  # YYYY-MM-DD HH
-                hour_counts[hour] += 1
-            except Exception:
-                pass
-    timeline = sorted(hour_counts.items())[-24:]  # last 24 hours
 
-    # Use pre-built incidents if provided, otherwise build once
+    for a in alerts:
+        if 'ip' in a: ip_counts[a['ip']] += 1
+        if 'type' in a: type_counts[a['type']] += 1
+        if 'time' in a:
+            try: hour_counts[a['time'][:13]] += 1
+            except: pass
+
+    top_ips = sorted(ip_counts.items(), key=lambda x: x[1], reverse=True)[:10]
+    attack_types = sorted(type_counts.items(), key=lambda x: x[1], reverse=True)
+    timeline = sorted(hour_counts.items())[-24:]
+
     if incidents is None:
         incidents = build_incidents(alerts)
 
@@ -283,51 +261,6 @@ def build_stats(alerts, incidents=None):
         'attack_types': [{'type': t, 'count': count} for t, count in attack_types],
         'timeline': [{'hour': h, 'count': count} for h, count in timeline]
     }
-
-
-def _parse_duration_to_seconds(duration: str, default_seconds=3600):
-    """Parse simple duration strings like 15m, 1h, 2d into seconds."""
-    if not duration:
-        return default_seconds
-    m = re.fullmatch(r'\s*(\d+)\s*([smhd])\s*', str(duration))
-    if not m:
-        return default_seconds
-    value = int(m.group(1))
-    unit = m.group(2)
-    mult = {'s': 1, 'm': 60, 'h': 3600, 'd': 86400}.get(unit, 3600)
-    return max(60, value * mult)
-
-
-def _safe_metric_name(name: str):
-    """Allow only Prometheus metric identifier format."""
-    if re.fullmatch(r'[a-zA-Z_:][a-zA-Z0-9_:]*', str(name or '')):
-        return name
-    return None
-
-
-def _safe_label_name(name: str):
-    """Allow only Prometheus label identifier format."""
-    if re.fullmatch(r'[a-zA-Z_][a-zA-Z0-9_]*', str(name or '')):
-        return name
-    return None
-
-
-def _prom_get_json(path: str, params=None, timeout=8):
-    params = params or {}
-    query = urlencode(params)
-    url = f"{PROMETHEUS_BASE_URL}{path}"
-    if query:
-        url = f"{url}?{query}"
-
-    with urlopen(url, timeout=timeout) as resp:
-        return json.loads(resp.read().decode('utf-8'))
-
-
-def _build_grafana_embed_url(uid: str, panel_id: Optional[str] = None, theme='dark'):
-    base = GRAFANA_BASE_URL.rstrip('/')
-    if panel_id:
-        return f"{base}/d-solo/{uid}?panelId={panel_id}&theme={theme}"
-    return f"{base}/d/{uid}?theme={theme}"
 
 
 class DashboardHandler(BaseHTTPRequestHandler):
@@ -346,12 +279,6 @@ class DashboardHandler(BaseHTTPRequestHandler):
                 self.serve_stats()
             elif path == '/api/incidents':
                 self.serve_incidents()
-            elif path == '/api/prometheus/metrics':
-                self.serve_prometheus_metrics()
-            elif path == '/api/prometheus/query-range':
-                self.serve_prometheus_query_range()
-            elif path == '/api/grafana/embed-preview':
-                self.serve_grafana_embed_preview()
             else:
                 self.send_response(404)
                 self.end_headers()
@@ -434,143 +361,6 @@ class DashboardHandler(BaseHTTPRequestHandler):
         alerts = parse_alerts()
         incidents = build_incidents(alerts)
         self._send_json(json.dumps(incidents[:100]))
-
-    def serve_prometheus_metrics(self):
-        q = getattr(self, '_query', {})
-        prefix = (q.get('prefix', [''])[0] or '').strip()
-        limit_raw = q.get('limit', ['200'])[0]
-
-        try:
-            limit = max(1, min(int(limit_raw), 1000))
-        except (TypeError, ValueError):
-            limit = 200
-
-        try:
-            payload = _prom_get_json('/api/v1/label/__name__/values')
-            if payload.get('status') != 'success':
-                raise ValueError('prometheus non-success status')
-
-            names = payload.get('data', [])
-            if prefix:
-                pfx = prefix.lower()
-                names = [n for n in names if str(n).lower().startswith(pfx)]
-
-            names = sorted(set(names))[:limit]
-            self._send_json(json.dumps({'items': names}))
-        except (URLError, HTTPError, TimeoutError, ValueError) as exc:
-            self.send_response(502)
-            self.send_header('Content-Type', 'application/json')
-            self.send_header('Access-Control-Allow-Origin', '*')
-            self.end_headers()
-            self.wfile.write(json.dumps({'error': f'prometheus unavailable: {exc}'}).encode('utf-8'))
-
-    def serve_prometheus_query_range(self):
-        q = getattr(self, '_query', {})
-        metric = _safe_metric_name((q.get('metric', [''])[0] or '').strip())
-        dimension_raw = (q.get('dimension', ['none'])[0] or 'none').strip()
-        range_raw = (q.get('range', ['1h'])[0] or '1h').strip()
-        step_raw = (q.get('step', ['60s'])[0] or '60s').strip()
-
-        if not metric:
-            self.send_response(400)
-            self.send_header('Content-Type', 'application/json')
-            self.send_header('Access-Control-Allow-Origin', '*')
-            self.end_headers()
-            self.wfile.write(b'{"error":"invalid metric name"}')
-            return
-
-        dim = None
-        if dimension_raw.lower() not in ('', 'none'):
-            dim = _safe_label_name(dimension_raw)
-            if not dim:
-                self.send_response(400)
-                self.send_header('Content-Type', 'application/json')
-                self.send_header('Access-Control-Allow-Origin', '*')
-                self.end_headers()
-                self.wfile.write(b'{"error":"invalid dimension label"}')
-                return
-
-        # Build conservative PromQL from metric + optional grouping label.
-        promql = f'sum by ({dim}) ({metric})' if dim else metric
-
-        duration_seconds = _parse_duration_to_seconds(range_raw, default_seconds=3600)
-        step_seconds = _parse_duration_to_seconds(step_raw, default_seconds=60)
-        end_ts = int(time.time())
-        start_ts = end_ts - duration_seconds
-
-        try:
-            payload = _prom_get_json(
-                '/api/v1/query_range',
-                params={
-                    'query': promql,
-                    'start': start_ts,
-                    'end': end_ts,
-                    'step': f'{step_seconds}s',
-                },
-            )
-            if payload.get('status') != 'success':
-                raise ValueError('prometheus non-success status')
-
-            result = payload.get('data', {}).get('result', [])
-            series = []
-            for item in result:
-                metric_meta = item.get('metric', {})
-                if dim:
-                    label = metric_meta.get(dim, '(unknown)')
-                else:
-                    label = metric
-
-                points = []
-                for ts, val in item.get('values', []):
-                    try:
-                        points.append({'ts': int(float(ts)), 'value': float(val)})
-                    except (TypeError, ValueError):
-                        continue
-                series.append({'label': label, 'points': points})
-
-            self._send_json(json.dumps({
-                'metric': metric,
-                'dimension': dim or 'none',
-                'query': promql,
-                'range': range_raw,
-                'step': f'{step_seconds}s',
-                'series': series,
-            }))
-        except (URLError, HTTPError, TimeoutError, ValueError) as exc:
-            self.send_response(502)
-            self.send_header('Content-Type', 'application/json')
-            self.send_header('Access-Control-Allow-Origin', '*')
-            self.end_headers()
-            self.wfile.write(json.dumps({'error': f'prometheus query failed: {exc}'}).encode('utf-8'))
-
-    def serve_grafana_embed_preview(self):
-        q = getattr(self, '_query', {})
-        uid = (q.get('uid', [''])[0] or '').strip()
-        panel_id = (q.get('panelId', [''])[0] or '').strip() or None
-        theme = (q.get('theme', ['dark'])[0] or 'dark').strip()
-
-        if not re.fullmatch(r'[A-Za-z0-9_-]{3,}', uid):
-            self.send_response(400)
-            self.send_header('Content-Type', 'application/json')
-            self.send_header('Access-Control-Allow-Origin', '*')
-            self.end_headers()
-            self.wfile.write(b'{"error":"invalid grafana uid"}')
-            return
-
-        if panel_id and not re.fullmatch(r'\d+', panel_id):
-            self.send_response(400)
-            self.send_header('Content-Type', 'application/json')
-            self.send_header('Access-Control-Allow-Origin', '*')
-            self.end_headers()
-            self.wfile.write(b'{"error":"invalid panel id"}')
-            return
-
-        if theme not in ('dark', 'light'):
-            theme = 'dark'
-
-        self._send_json(json.dumps({
-            'embed_url': _build_grafana_embed_url(uid, panel_id=panel_id, theme=theme)
-        }))
 
     def log_message(self, format, *args):
         pass  # suppress request logs
