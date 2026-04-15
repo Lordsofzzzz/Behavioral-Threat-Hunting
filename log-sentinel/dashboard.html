@@ -696,6 +696,17 @@
   </div>
 
   <!-- Live alerts feed -->
+  <div class="panel">
+    <div class="panel-header">
+      <div class="panel-title">Correlated Incidents</div>
+      <div class="panel-count" id="incidentCount">--</div>
+    </div>
+    <div class="ip-list" id="incidentList">
+      <div class="empty">No incidents yet</div>
+    </div>
+  </div>
+
+  <!-- Live alerts feed -->
   <div class="alerts-panel panel">
     <div class="panel-header">
       <div class="panel-title">Live Alert Feed</div>
@@ -718,6 +729,11 @@
 
   async function fetchAlerts() {
     const res = await fetch(`${API}/api/alerts`);
+    return res.json();
+  }
+
+  async function fetchIncidents() {
+    const res = await fetch(`${API}/api/incidents`);
     return res.json();
   }
 
@@ -796,6 +812,27 @@
       </div>`).join('');
   }
 
+  function renderIncidents(incidents) {
+    const el = document.getElementById('incidentList');
+    document.getElementById('incidentCount').textContent = `${incidents.length} incidents`;
+
+    if (!incidents.length) {
+      el.innerHTML = '<div class="empty">No incidents yet</div>';
+      return;
+    }
+
+    el.innerHTML = incidents.slice(0, 10).map(inc => {
+      const topTypes = (inc.types || []).slice(0, 2).join(', ');
+      const reason = (inc.reasons || [])[0] || 'correlated-activity';
+      return `
+        <div class="ip-row">
+          <span class="ip-addr">${inc.ip} · ${inc.severity}</span>
+          <span class="ip-count">${inc.alert_count} alerts · ${topTypes || 'mixed'} · score ${inc.max_score}</span>
+        </div>
+        <div class="alert-meta" style="margin: -6px 16px 10px 16px;">${reason}</div>`;
+    }).join('');
+  }
+
   function renderAlerts(alerts) {
     const el = document.getElementById('alertsFeed');
     document.getElementById('alertCount').textContent = `${alerts.length} alerts`;
@@ -811,6 +848,8 @@
       if (a.path)      meta.push(`<span>${a.path.slice(0, 60)}${a.path.length > 60 ? '...' : ''}</span>`);
       if (a.pattern)   meta.push(`<span>pattern: ${a.pattern}</span>`);
       if (a.useragent) meta.push(`<span>ua: ${a.useragent.slice(0, 40)}</span>`);
+      if (a.score)     meta.push(`<span>score: ${a.score}</span>`);
+      if (a.reasons && a.reasons.length) meta.push(`<span>reason: ${a.reasons[0]}</span>`);
       if (a.requests)  meta.push(`<span>${a.requests} reqs/${a.window}s</span>`);
       if (a.count)     meta.push(`<span>${a.count} 404s</span>`);
 
@@ -834,11 +873,12 @@
 
   async function refresh() {
     try {
-      const [stats, alerts] = await Promise.all([fetchStats(), fetchAlerts()]);
+      const [stats, alerts, incidents] = await Promise.all([fetchStats(), fetchAlerts(), fetchIncidents()]);
       renderStats(stats);
       renderTimeline(stats);
       renderTypes(stats);
       renderIPs(stats);
+      renderIncidents(incidents);
       renderAlerts(alerts);
       updateTimestamp();
     } catch (e) {

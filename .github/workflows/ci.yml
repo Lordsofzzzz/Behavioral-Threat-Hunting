@@ -1,0 +1,100 @@
+name: CI
+
+on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
+
+jobs:
+  python-checks:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r log-sentinel/requirements.txt
+
+      - name: Compile checks
+        run: |
+          python -m py_compile log-sentinel/sentinel.py
+          python -m py_compile log-sentinel/Dashboard-server.py
+          python -m py_compile log-sentinel/demo_simulator.py
+
+      - name: Smoke test detection + dashboard parser
+        run: |
+          python - << 'PY'
+          import importlib.util
+          from pathlib import Path
+          from tempfile import TemporaryDirectory
+
+          spec = importlib.util.spec_from_file_location('sentinel_mod', 'log-sentinel/sentinel.py')
+          sentinel_mod = importlib.util.module_from_spec(spec)
+          spec.loader.exec_module(sentinel_mod)
+
+          with TemporaryDirectory() as td:
+              td_path = Path(td)
+              cfg = td_path / 'config.yaml'
+              rules = td_path / 'rules'
+              rules.mkdir(parents=True, exist_ok=True)
+
+              (rules / 'sqli_patterns.txt').write_text('union\\s+select\\b\n', encoding='utf-8')
+              (rules / 'xss_patterns.txt').write_text('', encoding='utf-8')
+              (rules / 'traversal_patterns.txt').write_text('', encoding='utf-8')
+              (rules / 'cmdi_patterns.txt').write_text('', encoding='utf-8')
+              (rules / 'scanner_patterns.txt').write_text('', encoding='utf-8')
+
+              (td_path / 'test_access.log').write_text('', encoding='utf-8')
+
+              cfg.write_text('\n'.join([
+                  'log_file: test_access.log',
+                  'alert_log: alerts.log',
+                  'console_output: false',
+                  'enable_sqli_detection: true',
+                  'enable_behavioral_detection: false'
+              ]), encoding='utf-8')
+
+              cwd = Path.cwd()
+              try:
+                  import os
+                  os.chdir(td_path)
+                  s = sentinel_mod.LogSentinel('config.yaml')
+                  line = '203.0.113.10 - - [21/Feb/2026:12:00:00 +0000] "GET /login.php?id=1%27%20UNION%20SELECT%201 HTTP/1.1" 200 123 "-" "curl/8.0"'
+                  entry = s.parse_log_line(line)
+                  alerts = s.detect_attacks(entry)
+                  if not (alerts and alerts[0].get('score') is not None):
+                      rule_text = (rules / 'sqli_patterns.txt').read_text(encoding='utf-8')
+                      loaded_sqli = [p.pattern for p in s.patterns.get('sqli', [])]
+                      raise AssertionError(
+                          f"SQLi smoke failed. entry={entry}; alerts={alerts}; sqli_rule_file={rule_text!r}; loaded_sqli_patterns={loaded_sqli}"
+                      )
+              finally:
+                  os.chdir(cwd)
+
+          dspec = importlib.util.spec_from_file_location('dash_mod', 'log-sentinel/Dashboard-server.py')
+          dash_mod = importlib.util.module_from_spec(dspec)
+          dspec.loader.exec_module(dash_mod)
+
+          sample = '\n' + '='*80 + '\n[2026-02-21 12:00:00] Behavioral Anomaly - WARNING\nIP: 198.18.0.5\nRisk Score: 77/100\nReasons: new-endpoint-for-ip | ip-history:25\n' + '='*80 + '\n'
+          Path('alerts.log').write_text(sample, encoding='utf-8')
+          parsed = dash_mod.parse_alerts()
+          stats = dash_mod.build_stats(parsed)
+          if not (parsed and parsed[0].get('reasons')):
+              raise AssertionError(
+                  f"Dashboard parse smoke failed. parsed={parsed}; sample={sample!r}"
+              )
+          if 'incident_count' not in stats:
+              raise AssertionError(
+                  f"Dashboard stats smoke failed. stats={stats}; parsed={parsed}"
+              )
+          print('ci_smoke_ok')
+          PY

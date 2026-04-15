@@ -25,3 +25,12 @@ data:text/html
 <base\s+href
 <link.*href.*javascript
 <meta.*http-equiv.*refresh
+<body.*onload
+<input.*onfocus
+<marquee.*onstart
+event\s*=\s*
+src\s*=\s*javascript
+href\s*=\s*javascript
+formaction\s*=
+poster\s*=.*javascript
+srcset\s*=.*javascript

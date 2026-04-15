@@ -23,3 +23,12 @@ CHAR\s*\(
 CONCAT\s*\(
 LOAD_FILE\s*\(
 INTO\s+OUTFILE
+UNION\s+.*FROM
+SELECT\s+.*FROM
+--\s*$
+;\s*DROP
+;\s*DELETE
+\/\*.*\*\/.*SELECT
+mysql_query
+QUERY\s*\(
+prepare\s*\(

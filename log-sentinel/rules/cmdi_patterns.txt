@@ -26,3 +26,14 @@ python.*-c
 perl.*-e
 ruby.*-e
 php.*-r
+\|\s*whoami
+>\s*/etc/passwd
+head\s+-n
+tail\s+-f
+find\s+.*-exec
+xargs\s+
+sudo\s+
+su\s+-
+sed\s+
+awk\s+
+grep\s+

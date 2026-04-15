@@ -1,0 +1,173 @@
+services:
+  demo-webapp:
+    profiles: ["demo", "full"]
+    build:
+      context: ./apps/demo-webapp
+      dockerfile: Dockerfile
+    container_name: demo-webapp
+    ports:
+      - "8088:80"
+    volumes:
+      - nginx_logs:/var/log/nginx
+    restart: unless-stopped
+
+  log-generator:
+    profiles: ["demo", "full"]
+    build:
+      context: ./apps/log-generator
+      dockerfile: Dockerfile
+    container_name: log-generator
+    environment:
+      TARGET_URL: http://demo-webapp
+      INTERVAL_SEC: "0.8"
+    depends_on:
+      - demo-webapp
+    restart: unless-stopped
+
+  sentinel:
+    profiles: ["engine", "core", "portal", "full"]
+    build:
+      context: ./log-sentinel
+      dockerfile: Dockerfile
+    container_name: log-sentinel-engine
+    working_dir: /app
+    command: ["python", "sentinel.py"]
+    volumes:
+      - ./log-sentinel:/app
+    restart: unless-stopped
+
+  dashboard:
+    profiles: ["dashboard", "core", "portal", "full"]
+    build:
+      context: ./log-sentinel
+      dockerfile: Dockerfile
+    container_name: log-sentinel-dashboard
+    working_dir: /app
+    command: ["python", "Dashboard-server.py"]
+    ports:
+      - "8888:8888"
+    volumes:
+      - ./log-sentinel:/app
+    restart: unless-stopped
+
+  simulator:
+    profiles: ["simulator", "full"]
+    build:
+      context: ./log-sentinel
+      dockerfile: Dockerfile
+    container_name: log-sentinel-simulator
+    working_dir: /app
+    command: ["python", "demo_simulator.py"]
+    volumes:
+      - ./log-sentinel:/app
+    restart: "no"
+
+  postgres:
+    profiles: ["portal", "full"]
+    image: postgres:16-alpine
+    container_name: portal-postgres
+    environment:
+      POSTGRES_DB: portaldb
+      POSTGRES_USER: portal
+      POSTGRES_PASSWORD: portal
+    ports:
+      - "5432:5432"
+    volumes:
+      - portal_postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U portal -d portaldb"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+    restart: unless-stopped
+
+  redis:
+    profiles: ["portal", "full"]
+    image: redis:7-alpine
+    container_name: portal-redis
+    ports:
+      - "6379:6379"
+    restart: unless-stopped
+
+  portal-api:
+    profiles: ["portal", "full"]
+    build:
+      context: ./apps/portal-api
+      dockerfile: Dockerfile
+    container_name: portal-api
+    environment:
+      DATABASE_URL: postgresql+psycopg://portal:portal@postgres:5432/portaldb
+      SENTINEL_API_URL: http://dashboard:8888
+      GRAFANA_BASE_URL: http://grafana:3000
+    ports:
+      - "8080:8080"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      dashboard:
+        condition: service_started
+    restart: unless-stopped
+
+  portal-ui:
+    profiles: ["portal", "full"]
+    build:
+      context: ./apps/portal-ui
+      dockerfile: Dockerfile
+    container_name: portal-ui
+    environment:
+      NEXT_PUBLIC_PORTAL_API_URL: http://localhost:8080
+      NEXT_PUBLIC_GRAFANA_URL: http://localhost:3000
+    ports:
+      - "3001:3001"
+    depends_on:
+      - portal-api
+    restart: unless-stopped
+
+  prometheus:
+    profiles: ["observability", "full"]
+    image: prom/prometheus:v2.54.1
+    container_name: prometheus
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./infra/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+    command:
+      - "--config.file=/etc/prometheus/prometheus.yml"
+    restart: unless-stopped
+
+  grafana:
+    profiles: ["observability", "full"]
+    image: grafana/grafana:11.2.0
+    container_name: grafana
+    ports:
+      - "3000:3000"
+    environment:
+      GF_SECURITY_ADMIN_USER: admin
+      GF_SECURITY_ADMIN_PASSWORD: admin
+      GF_AUTH_ANONYMOUS_ENABLED: "true"
+      GF_AUTH_ANONYMOUS_ORG_ROLE: Viewer
+      GF_SECURITY_ALLOW_EMBEDDING: "true"
+    volumes:
+      - ./infra/grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./infra/grafana/dashboards:/var/lib/grafana/dashboards:ro
+    depends_on:
+      - prometheus
+    restart: unless-stopped
+
+  homarr:
+    profiles: ["homarr", "full"]
+    image: ghcr.io/homarr-labs/homarr:latest
+    container_name: homarr
+    ports:
+      - "7575:7575"
+    environment:
+      TZ: Asia/Kolkata
+      SECRET_ENCRYPTION_KEY: c1626f4ebb174158ce79839cfe59fdc8bbcacc66d6b74471da28fa20bfe8f47a
+    volumes:
+      - homarr_appdata:/appdata
+    restart: unless-stopped
+
+volumes:
+  nginx_logs:
+  portal_postgres_data:
+  homarr_appdata:

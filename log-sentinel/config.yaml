@@ -1,10 +1,10 @@
 # Log Sentinel Configuration
 
 # Log file to monitor
-log_file: test_access.log
+log_file: data/test_access.log
 
 # Alert output
-alert_log: alerts.log
+alert_log: data/alerts.log
 console_output: true
 
 # Detection settings
@@ -26,6 +26,20 @@ max_404_per_minute: 10
 # Alert levels
 # 0 = INFO, 1 = WARNING, 2 = CRITICAL
 min_alert_level: 1
+
+# Duplicate alert suppression
+dedup_enabled: true
+dedup_window_seconds: 30
+
+# Console rendering limits
+max_path_length: 200
+
+# Behavioral anomaly detection (Phase 2 unique factor)
+enable_behavioral_detection: true
+behavior_baseline_min_requests: 20
+behavior_rate_spike_multiplier: 2.5
+behavior_new_endpoint_min_history: 15
+behavior_new_ua_min_history: 15
 
 # Whitelist IPs (comma-separated, no detection on these)
 whitelist_ips: 127.0.0.1,::1

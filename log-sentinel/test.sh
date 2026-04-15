@@ -3,8 +3,10 @@
 # Run this in Terminal 2 while sentinel.py is running in Terminal 1
 # Generates 5 attack types with high variety
 
-LOG_FILE="test_access.log"
+LOG_FILE="data/test_access.log"
 DELAY=1  # seconds between each attack
+
+mkdir -p "$(dirname "$LOG_FILE")"
 
 log() {
     local ip=$1
