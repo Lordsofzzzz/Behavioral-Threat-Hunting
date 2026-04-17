@@ -20,11 +20,3 @@ class PageLayout(Base):
     id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
     page_name: Mapped[str] = mapped_column(String(255), unique=True)
     layout_json: Mapped[str] = mapped_column(Text)
-
-class ServiceIntegration(Base):
-    __tablename__ = "service_integrations"
-
-    id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
-    service_type: Mapped[str] = mapped_column(String(50), unique=True)
-    base_url: Mapped[str] = mapped_column(String(255))
-    enabled: Mapped[bool] = mapped_column(Boolean, default=True)

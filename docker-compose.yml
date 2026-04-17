@@ -50,18 +50,6 @@ services:
       - ./log-sentinel:/app
     restart: unless-stopped
 
-  simulator:
-    profiles: ["simulator", "full"]
-    build:
-      context: ./log-sentinel
-      dockerfile: Dockerfile
-    container_name: log-sentinel-simulator
-    working_dir: /app
-    command: ["python", "demo_simulator.py"]
-    volumes:
-      - ./log-sentinel:/app
-    restart: "no"
-
   postgres:
     profiles: ["portal", "full"]
     image: postgres:16-alpine

@@ -123,10 +123,10 @@ def parse_alerts():
         return list(alerts)
 
 
-def parse_alert_time(alert):
+def parse_alert_time(time_str):
     """Convert alert time field to datetime"""
     try:
-        return datetime.strptime(alert.get('time', ''), '%Y-%m-%d %H:%M:%S')
+        return datetime.strptime(time_str, '%Y-%m-%d %H:%M:%S')
     except (TypeError, ValueError):
         return None
 
@@ -138,7 +138,7 @@ def build_incidents(alerts, window_minutes=INCIDENT_WINDOW_MINUTES):
 
     alerts_with_time = []
     for alert in alerts:
-        alert_time = parse_alert_time(alert)
+        alert_time = parse_alert_time(alert.get('time', ''))
         if alert_time:
             alerts_with_time.append((alert_time, alert))
 

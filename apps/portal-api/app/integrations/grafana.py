@@ -1,6 +1,4 @@
-import os
-
-GRAFANA_BASE_URL = os.getenv("GRAFANA_BASE_URL", "http://grafana:3000")
+GRAFANA_BASE_URL = "http://grafana:3000"
 
 def build_embed_url(grafana_uid: str, panel_id: str | None = None) -> str:
     if panel_id:
