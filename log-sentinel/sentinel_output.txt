@@ -1,0 +1,16 @@
+[92mLoaded 155 attack patterns[0m
+[92m[1mLog Sentinel Starting...[0m
+[96mMonitoring: data/test_access.log[0m
+[96mAlert log: data/alerts.log[0m
+[96mWaiting for new log entries...[0m
+
+
+[91m[1m!! ALERT: Path Traversal [CRITICAL][0m
+[91mTime: 2026-04-24 23:44:42[0m
+[91mIP: 192.168.1.60[0m
+[91mPattern: /etc/passwd[0m
+[91mPath: /etc/passwd[0m
+[91mRisk Score: 91/100[0m
+[91mReasons: matched-pattern:/etc/passwd[0m
+[91m================================================================================[0m
+

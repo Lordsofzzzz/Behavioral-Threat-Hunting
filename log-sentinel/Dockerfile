@@ -15,6 +15,6 @@ RUN useradd --create-home --shell /usr/sbin/nologin appuser && \
 
 USER appuser
 
-EXPOSE 8888
+EXPOSE 8000
 
 CMD ["python", "sentinel.py"]

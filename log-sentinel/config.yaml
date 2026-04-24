@@ -1,10 +1,10 @@
 # Log Sentinel Configuration
 
 # Log file to monitor
-log_file: data/test_access.log
+log_file: /var/log/nginx/access.log
 
 # Alert output
-alert_log: data/alerts.log
+alert_log: /app/data/alerts.log
 console_output: true
 
 # Detection settings
