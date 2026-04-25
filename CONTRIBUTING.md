@@ -5,27 +5,24 @@ Thanks for your interest in improving Behavioral Threat Hunting.
 ## Development Setup
 1. Create and activate a Python virtual environment.
 2. Install dependencies:
-   - `pip install -r log-sentinel/requirements.txt`
-   - `pip install -r apps/portal-api/requirements.txt`
-3. (Optional for Portal UI local dev) install Node dependencies:
-   - `cd apps/portal-ui && npm install`
-   - `cd ../..`
+   - `pip install PyYAML prometheus_client`
+3. (Optional, only if running the generator outside Docker):
+   - `pip install requests`
 4. Run locally (Python):
    - `python log-sentinel/sentinel.py`
-   - `python log-sentinel/Dashboard-server.py`
+5. If running outside Docker, make sure `log-sentinel/config.yaml` points `log_file` to a valid host path.
 
-Optional (Docker one-command):
-- Windows PowerShell: `./run-stack.ps1 -Profile full -Action up`
-- Windows CMD: `run-stack.bat full up`
-- Linux/macOS: `./run-stack.sh full up`
+Optional (Docker, recommended for contributors):
+- `docker compose --profile full up -d --build`
+- `docker compose down`
 
 ## Contribution Scope
 - Detection rules in `log-sentinel/rules/`
 - Detection engine in `log-sentinel/sentinel.py`
-- Dashboard API and UI in `log-sentinel/Dashboard-server.py` and `log-sentinel/dashboard.html`
-- Portal API in `apps/portal-api/`
-- Portal UI in `apps/portal-ui/`
-- Documentation in `README.md` and `PHASED_IMPROVEMENT_PLAN.md`
+- Log generation in `apps/log-generator/`
+- Demo app and Nginx config in `apps/demo-webapp/`
+- Observability configuration in `infra/`
+- Documentation in `README.md`, `docs/ARCHITECTURE.md`, and `PHASED_IMPROVEMENT_PLAN.md`
 
 ## Rule Contribution Requirements
 - Keep regex focused and explain intended attack pattern.

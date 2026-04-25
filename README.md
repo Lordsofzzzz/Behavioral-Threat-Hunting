@@ -1,79 +1,82 @@
 # Behavioral Threat Hunting - Log Sentinel
 
-Log Sentinel is a lightweight, real-time log monitor for Nginx-style access logs. It detects common web attacks using pattern rules, rate limiting, and 404 spam heuristics, exporting metrics directly to Prometheus for visualization in Grafana.
+Log Sentinel is a lightweight, real-time threat hunting engine for Nginx-style access logs. It combines pattern-based detection and behavioral checks, then exports metrics to Prometheus for Grafana dashboards.
 
 ## Features
-- Detects SQL injection, XSS, path traversal, and command injection
-- Flags known scanner User-Agents
-- Rate limit and 404 spam detection per IP
-- Console alerts and file-based alert logging
-- **Prometheus Metrics:** Native exporter for real-time monitoring
-- **Grafana Dashboard:** Pre-configured security overview dashboard
-- Dynamic risk scoring (0-100) with score-based severity
-- Behavioral anomaly detection (new endpoint, new user-agent, request spike)
-- Explainable alerts with machine-readable reason codes
-
-## Release Highlights (Apr 2026)
-- **Architecture Optimization:** Consolidated the stack by removing redundant portal services and legacy dashboard servers.
-- **Docker Automation:** Implemented Docker healthchecks and service dependencies to ensure a reliable startup sequence.
-- **Prometheus Integration:** Fully transitioned to Prometheus/Grafana as the primary observability stack.
-- **Strict Configuration:** Unified configuration management via `config.yaml` for all environments.
-- **Robustness:** Added "wait-for-file" logic in the core engine to handle container synchronization gracefully.
+- Detects SQL injection, XSS, path traversal, command injection, and scanner traffic
+- Adds behavioral anomaly signals (rate spikes, new endpoint usage, new User-Agent)
+- Scores alerts from 0-100 and maps to severity levels
+- Emits explainable reason codes for each alert
+- Suppresses duplicate alerts within a configurable window
+- Exposes Prometheus metrics on port 8000
 
 ## Project Structure
-- .github/: CI and contribution templates
-- docs/: architecture and demo docs
-- log-sentinel/
-  - sentinel.py: Log monitor and detection engine (Prometheus exporter on port 8000)
-  - config.yaml: Unified runtime settings
-  - rules/: Pattern files for detection
-  - data/: Alert logs and persistent data
-- apps/
-  - demo-webapp/: Target Nginx application
-  - log-generator/: Traffic and attack simulator
-- infra/
-  - grafana/: Dashboards and provisioning
-  - prometheus/: Scrape configurations
+- `.github/`: CI and contribution templates
+- `apps/`
+  - `demo-webapp/`: Nginx demo target application
+  - `log-generator/`: traffic and attack simulation client
+- `docs/`
+  - `ARCHITECTURE.md`: architecture and data-flow reference
+- `infra/`
+  - `grafana/`: dashboards and provisioning
+  - `loki/`: Loki configuration
+  - `prometheus/`: Prometheus scrape configuration
+  - `promtail/`: log shipping configuration
+- `log-sentinel/`
+  - `sentinel.py`: core detection engine and Prometheus exporter
+  - `config.yaml`: runtime settings
+  - `rules/`: detection patterns
+  - `data/`: alert output files
 
 ## Requirements
-- Python 3.13+ (core engine)
-- Docker Desktop (recommended for full integrated stack)
-- Python dependencies: `PyYAML`, `prometheus_client`
+- Docker Desktop (recommended)
+- Python 3.13+ (only for host/manual run)
+- Python packages for host/manual run: `PyYAML`, `prometheus_client`
+- Optional package for host/manual traffic generation: `requests`
 
-## Setup & Running
+## Setup and Running
 
-### 1. Manual Execution (Host)
-From the `log-sentinel` directory:
+### 1. Docker (recommended)
+Run the full stack:
+
 ```bash
-pip install -r requirements.txt
+docker compose --profile full up -d --build
+```
+
+Useful profile variants:
+- Engine only: `docker compose --profile engine up -d --build`
+- Observability only: `docker compose --profile observability up -d`
+- Demo traffic only: `docker compose --profile demo up -d --build`
+
+Stop and remove containers:
+
+```bash
+docker compose down
+```
+
+### 2. Manual Sentinel Run (host)
+From `log-sentinel/`:
+
+```bash
+pip install PyYAML prometheus_client
 python sentinel.py
 ```
-*Note: Ensure the `log_file` path in `config.yaml` exists on your host.*
 
-### 2. Docker Execution (Recommended)
-Launch the entire optimized stack with a single command:
-```bash
-docker compose --profile full up -d
-```
+Note: if running outside Docker, set `log_file` in `log-sentinel/config.yaml` to a real host path.
 
-Docker automatically orchestrates the sequence:
-1. Starts the **Target Webapp**.
-2. Waits for the Webapp to be **Healthy** (confirming logs are active).
-3. Starts the **Sentinel**, **Traffic Generator**, **Prometheus**, and **Grafana**.
-
-## Accessing the Stack
-- **Target Webapp:** `http://localhost:8088`
-- **Security Dashboard (Grafana):** `http://localhost:3000` (User: `admin`, Pass: `admin`)
-- **Prometheus Metrics:** `http://localhost:9090`
-- **Sentinel Metrics (Raw):** `http://localhost:8000/metrics`
+## Access URLs
+- Demo web app: `http://localhost:8088`
+- Sentinel metrics: `http://localhost:8000/metrics`
+- Prometheus: `http://localhost:9090`
+- Grafana: `http://localhost:3000` (default admin/admin)
+- Loki API: `http://localhost:3100`
 
 ## Open Source Readiness
-- License: MIT (`LICENSE`)
+- License: `LICENSE`
 - Contribution guide: `CONTRIBUTING.md`
 - Code of conduct: `CODE_OF_CONDUCT.md`
 - Security policy: `SECURITY.md`
 - CI checks: `.github/workflows/ci.yml`
 
-## Presentation Docs
+## Documentation
 - Architecture overview: `docs/ARCHITECTURE.md`
-- 2-minute demo flow: `docs/DEMO_SCRIPT.md`

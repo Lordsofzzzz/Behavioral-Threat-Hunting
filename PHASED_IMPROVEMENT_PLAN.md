@@ -20,9 +20,9 @@ This plan is structured to make the project academically strong, implementation-
 - Add explainable alerts with reason codes and context values
 
 ## Phase 3 — Analyst Experience
-- Add dashboard filters (time, type, severity, IP)
-- Add incident grouping/correlation instead of isolated alerts
-- Add acknowledgement workflow and exportable incident summaries
+- Expand Grafana dashboard coverage (attack categories, top sources, rate trends)
+- Add clearer alert triage views from persisted alert evidence
+- Add operator-focused troubleshooting and tuning guidance
 
 ## Phase 4 — Open Source Maturity
 - Add OSS governance docs (`LICENSE`, `CONTRIBUTING`, `SECURITY`, templates)
@@ -30,19 +30,18 @@ This plan is structured to make the project academically strong, implementation-
 - Add community rule-pack structure and contribution checks
 
 ## Phase 5 — Academic Validation
-- Create benchmark dataset and replay harness
+- Build reproducible benchmark dataset and replay tooling
 - Measure precision, recall, F1, detection latency, and resource usage
-- Compare against baseline tools and discuss trade-offs
+- Compare against baseline tools and document trade-offs
 
 ## Phase 6 — Packaging and Operations
 - Add Docker packaging for reproducible environment setup
-- Provide one-command launcher scripts for Windows and Linux/macOS
 - Isolate component startup using compose profiles for resilient demos
 - Document quick-start and troubleshooting commands for viva/demo readiness
 
 ## Current Status
 - Implemented in code: **Phase 0 + Phase 1 core engine improvements**.
 - Implemented in code: **Phase 2 baseline behavioral anomaly detection + explainable reason codes**.
-- Implemented in code: **Phase 3 incident correlation API + dashboard panel**.
-- Implemented in code: **Phase 5 evaluation harness (dataset generation + benchmark metrics report)**.
-- Implemented in code: **Phase 6 Docker packaging + one-command scripted demo**.
+- Partially implemented: **Phase 3 analyst experience via Grafana dashboards and Prometheus metrics exposure**.
+- In progress / future work: **Phase 5 formal benchmark harness and published validation report**.
+- Implemented in code: **Phase 6 Docker packaging + compose profiles for demo, engine, observability, and full stack runs**.
