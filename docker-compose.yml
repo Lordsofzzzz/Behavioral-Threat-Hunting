@@ -61,6 +61,31 @@ services:
       - "--config.file=/etc/prometheus/prometheus.yml"
     restart: unless-stopped
 
+  loki:
+    profiles: ["observability", "full"]
+    image: grafana/loki:3.1.1
+    container_name: loki
+    ports:
+      - "3100:3100"
+    command: -config.file=/etc/loki/config.yml
+    volumes:
+      - ./infra/loki/config.yml:/etc/loki/config.yml:ro
+      - loki_data:/loki
+    restart: unless-stopped
+
+  promtail:
+    profiles: ["observability", "full"]
+    image: grafana/promtail:3.1.1
+    container_name: promtail
+    command: -config.file=/etc/promtail/config.yml
+    volumes:
+      - ./infra/promtail/config.yml:/etc/promtail/config.yml:ro
+      - nginx_logs:/var/log/nginx:ro
+    depends_on:
+      - loki
+      - demo-webapp
+    restart: unless-stopped
+
   grafana:
     profiles: ["observability", "full"]
     image: grafana/grafana:11.2.0
@@ -78,7 +103,9 @@ services:
       - ./infra/grafana/dashboards:/var/lib/grafana/dashboards:ro
     depends_on:
       - prometheus
+      - loki
     restart: unless-stopped
 
 volumes:
   nginx_logs:
+  loki_data:
