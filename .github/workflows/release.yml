@@ -78,7 +78,6 @@ jobs:
             cd log-sentinel/
             pip install -r requirements.txt
             python sentinel.py
-            python Dashboard-server.py
             ```
 
             **Full integrated stack:**

@@ -5,9 +5,9 @@ Thanks for your interest in improving Behavioral Threat Hunting.
 ## Development Setup
 1. Create and activate a Python virtual environment.
 2. Install dependencies:
-   - `pip install PyYAML prometheus_client`
+   - `pip install -r log-sentinel/requirements.txt`
 3. (Optional, only if running the generator outside Docker):
-   - `pip install requests`
+   - `pip install -r apps/log-generator/requirements.txt`
 4. Run locally (Python):
    - `python log-sentinel/sentinel.py`
 5. If running outside Docker, make sure `log-sentinel/config.yaml` points `log_file` to a valid host path.

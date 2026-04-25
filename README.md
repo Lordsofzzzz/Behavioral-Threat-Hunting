@@ -31,8 +31,8 @@ Log Sentinel is a lightweight, real-time threat hunting engine for Nginx-style a
 ## Requirements
 - Docker Desktop (recommended)
 - Python 3.13+ (only for host/manual run)
-- Python packages for host/manual run: `PyYAML`, `prometheus_client`
-- Optional package for host/manual traffic generation: `requests`
+- Python packages for host/manual run: `pip install -r log-sentinel/requirements.txt`
+- Optional package for host/manual traffic generation: `pip install -r apps/log-generator/requirements.txt`
 
 ## Setup and Running
 
@@ -58,7 +58,7 @@ docker compose down
 From `log-sentinel/`:
 
 ```bash
-pip install PyYAML prometheus_client
+pip install -r requirements.txt
 python sentinel.py
 ```
 

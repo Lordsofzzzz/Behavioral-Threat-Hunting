@@ -23,14 +23,14 @@ jobs:
         run: |
           python -m pip install --upgrade pip
           pip install -r log-sentinel/requirements.txt
+          pip install -r apps/log-generator/requirements.txt
 
       - name: Compile checks
         run: |
           python -m py_compile log-sentinel/sentinel.py
-          python -m py_compile log-sentinel/Dashboard-server.py
-          python -m py_compile log-sentinel/demo_simulator.py
+          python -m py_compile apps/log-generator/generator.py
 
-      - name: Smoke test detection + dashboard parser
+      - name: Smoke test detection engine
         run: |
           python - << 'PY'
           import importlib.util
@@ -79,22 +79,5 @@ jobs:
                       )
               finally:
                   os.chdir(cwd)
-
-          dspec = importlib.util.spec_from_file_location('dash_mod', 'log-sentinel/Dashboard-server.py')
-          dash_mod = importlib.util.module_from_spec(dspec)
-          dspec.loader.exec_module(dash_mod)
-
-          sample = '\n' + '='*80 + '\n[2026-02-21 12:00:00] Behavioral Anomaly - WARNING\nIP: 198.18.0.5\nRisk Score: 77/100\nReasons: new-endpoint-for-ip | ip-history:25\n' + '='*80 + '\n'
-          Path('alerts.log').write_text(sample, encoding='utf-8')
-          parsed = dash_mod.parse_alerts()
-          stats = dash_mod.build_stats(parsed)
-          if not (parsed and parsed[0].get('reasons')):
-              raise AssertionError(
-                  f"Dashboard parse smoke failed. parsed={parsed}; sample={sample!r}"
-              )
-          if 'incident_count' not in stats:
-              raise AssertionError(
-                  f"Dashboard stats smoke failed. stats={stats}; parsed={parsed}"
-              )
           print('ci_smoke_ok')
           PY
